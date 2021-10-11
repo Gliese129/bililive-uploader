@@ -1,9 +1,9 @@
+import os
 from utils import FileUtils
 
 
 class GlobalConfig:
-    min_size = 1
-    max_size = 4
+    recorder_dir: str
     process_dir: str
     delete_flag: bool
     port: int
@@ -11,7 +11,8 @@ class GlobalConfig:
     account: dict
 
     def __init__(self, folder_path: str):
-        config = FileUtils.YmlReader(folder_path + '\\global-config.yml')
+        config = FileUtils.YmlReader(os.path.join(folder_path, 'global-config.yml'))
+        self.recorder_dir = config['recorder']['recorder-dir']
         self.process_dir = config['recorder']['process-dir']
         self.delete_flag = config['recorder']['delete-after-upload']
         self.port = config['server']['port']
@@ -23,16 +24,19 @@ class Condition:
     item: str
     regexp: str
     tags: list[str]
-    upload: bool
+    process: bool
 
-    def __init__(self, item: str, regexp: str, tags: str, upload: bool):
-        self.item = item
-        self.regexp = regexp
-        self.tags = tags.split(',')
-        if upload is None:
-            self.upload = upload
+    def __init__(self, data: dict):
+        self.item = data['item']
+        self.regexp = str(data['regexp'])
+        if data['tags'] is None:
+            self.tags = []
         else:
-            self.upload = True
+            self.tags = data['tags'].split(',')
+        if data['process'] is not None:
+            self.process = data['process']
+        else:
+            self.process = True
 
 
 class Room:
@@ -42,17 +46,21 @@ class Room:
     description: str
     conditions: list[Condition]
 
-    def __init__(self, room_id: int, tags: str, title: str, description: str, conditions: list[Condition]):
-        self.id = room_id
-        self.title = title
-        self.description = description
-        self.tags = tags.split(',')
-        self.conditions = conditions
+    def __init__(self, data: dict):
+        self.id = data['id']
+        self.title = data['title']
+        self.description = data['description']
+        self.tags = data['tags'].split(',')
+        self.conditions = []
+        for condition in data['conditions']:
+            self.conditions.append(Condition(data=condition))
 
 
 class RoomConfig:
     rooms: list[Room]
 
     def __init__(self, folder_path: str):
-        config = FileUtils.YmlReader(folder_path + '\\room-config.yml')
-        self.rooms = config['rooms']
+        config = FileUtils.YmlReader(os.path.join(folder_path, 'room-config.yml'))
+        self.rooms = []
+        for room in config['rooms']:
+            self.rooms.append(Room(data=room))

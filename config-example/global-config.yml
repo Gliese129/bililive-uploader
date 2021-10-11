@@ -1,5 +1,6 @@
 recorder:
-  process-dir: E:\\live stream\proceed # 输出位置
+  recorder-dir: E:\\live stream  # 录播姬工作目录
+  process-dir: E:\\live stream\proceed  # 输出位置
   delete-after-upload: true  # 是否在上传完成后删除
 
 server:

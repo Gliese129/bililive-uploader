@@ -1,8 +1,7 @@
 import json
 import os
-from array import array
 import yaml
-import shutil
+from shutil import copy
 
 
 def YmlReader(path: str) -> dict:
@@ -32,5 +31,12 @@ def WriteDict(path: str, obj: dict):
         json.dump(obj, f)
 
 
-def CopyFiles(files: array, target: str):
-    print()
+def CopyFiles(files: list[str], target: str, types: list[str]) -> list[str]:
+    if not os.path.exists(target):
+        os.makedirs(target)
+    new_files = []
+    for file in files:
+        for file_type in types:
+            copy(src=file + '.' + file_type, dst=target)
+        new_files.append(os.path.join(target, os.path.split(file)[1]))
+    return new_files
