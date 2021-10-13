@@ -1,11 +1,20 @@
 # coding=utf-8
 from config import GlobalConfig, RoomConfig
 from quart import Quart, request, Response
+import datetime
+from thread import ProcessThread
 from utils.VideoProcessor import Processor
 import logging
 
 app = Quart(__name__)
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
+
+
+async def session_started(room_id: int):
+    logging.info('received webhook: session started')
+    start_time = datetime.datetime.now()
+    logging.debug('room: %d  live start at %s' % (room_id, start_time.strftime('%Y-%m-%d %H:%M:%S')))
+    Processor.live_start(room_id=room_id, start_time=start_time)
 
 
 @app.route('/video-process/v2', methods=['POST'])
@@ -14,22 +23,28 @@ async def processor():
     event_type = json_request['EventType']
     event_data = json_request['EventData']
     room_id = event_data['RoomId']
-    if event_type == 'FileOpening':
-        logging.info('received webhook: file opening')
-        file_path = event_data['RelativePath']
-        logging.debug('room: %d  file: %s' % (room_id, file_path))
-        Processor.file_open(room_id=room_id, file_path=file_path)
-        return Response(response='', status=200)
-    if event_type == 'SessionEnded':
-        logging.info('received webhook: session ended')
-        process = Processor(event_data=json_request['EventData'], global_config=global_config)
-        process.live_end()
-        if process.check_if_need_process(configs=room_config.rooms):  # 需要处理上传
-            logging.info('starting processing...')
-            process.prepare()
-            logging.info('starting converting danmaku files...')
-            process.make_damaku()
-
+    if event_type == 'SessionStarted':
+        data = {
+            'room_id': room_id
+        }
+        thread = ProcessThread(name=event_type, data=data)
+        thread.run()
+    elif event_type == 'FileOpening':
+        data = {
+            'room_id': room_id,
+            'event_data': event_data
+        }
+        thread = ProcessThread(name=event_type, data=data)
+        thread.run()
+    elif event_type == 'SessionEnded':
+        data = {
+            'json_request': json_request,
+            'global_config': global_config,
+            'room_config': room_config,
+            'room_id': room_id
+        }
+        thread = ProcessThread(name=event_type, data=data)
+        thread.run()
     return Response(response='', status=200)
 
 
@@ -37,4 +52,5 @@ if __name__ == '__main__':
     config_path = '.\\config-example'
     room_config = RoomConfig(config_path)
     global_config = GlobalConfig(config_path)
+    logging.info('application run at port: %d' % global_config.port)
     app.run(port=global_config.port)

@@ -1,3 +1,4 @@
+import datetime
 import os
 import subprocess
 from utils import FileUtils
@@ -5,7 +6,8 @@ from config import Room, GlobalConfig
 import re
 import logging
 
-cache_path = './cache/cache.json'
+video_cache = './cache/videos.json'
+time_cache = './cache/times.json'
 
 
 class Processor:
@@ -21,6 +23,7 @@ class Processor:
     config: Room
     recorder_path: str
     process_path: str
+    start_time: datetime
 
     def __init__(self, event_data: dict, global_config: GlobalConfig):
         self.room_id = event_data['RoomId']
@@ -34,10 +37,19 @@ class Processor:
         self.process_videos = []
         self.recorder_path = global_config.recorder_dir
         self.process_path = global_config.process_dir
+        rooms = FileUtils.ReadJson(time_cache)
+        self.start_time = datetime.datetime.fromtimestamp(rooms[str(self.room_id)])
+
+    @staticmethod
+    def live_start(room_id: int, start_time: datetime):
+        rooms = FileUtils.ReadJson(time_cache)
+        room_id = str(room_id)
+        rooms[room_id] = start_time.timestamp()
+        FileUtils.WriteDict(obj=rooms, path=time_cache)
 
     @staticmethod
     def file_open(room_id: int, file_path: str):
-        rooms = FileUtils.ReadJson(cache_path)
+        rooms = FileUtils.ReadJson(video_cache)
         room_id = str(room_id)  # 防止取出json时房间号为string而导致不匹配
         file_path = file_path.replace('.flv', '')  # 去掉文件格式
         room = rooms.get(room_id)
@@ -45,14 +57,14 @@ class Processor:
             rooms[room_id] = []
             room = rooms[room_id]
         room.append(file_path)
-        FileUtils.WriteDict(path=cache_path, obj=rooms)
+        FileUtils.WriteDict(path=video_cache, obj=rooms)
 
     def live_end(self):
-        rooms = FileUtils.ReadJson(cache_path)
+        rooms = FileUtils.ReadJson(video_cache)
         self.origin_videos = rooms[str(self.room_id)]
         # 清空
         rooms[str(self.room_id)] = []
-        FileUtils.WriteDict(path=cache_path, obj=rooms)
+        FileUtils.WriteDict(path=video_cache, obj=rooms)
         # video相对目录转为绝对目录
         absolute_videos = []
         for video in self.origin_videos:
@@ -85,17 +97,42 @@ class Processor:
                     logging.debug('config details:  item: %s, regexp: %s' % (condition.item, condition.regexp))
         return flag
 
-    def prepare(self):
+    def prepare(self) -> Room:
         #  将文件转移到处理目录
         target_dir = os.path.join(self.process_path, self.session_id)
+        logging.info('moving files to dictionary %s' % target_dir)
         self.process_videos = FileUtils.CopyFiles(files=self.origin_videos, target=target_dir, types=['flv', 'xml'])
+        return self.config
 
-    def make_damaku(self):
+    async def make_damaku(self):
         exe_path = 'resources\\DanmakuFactory.exe'
         command = ''
         for record in self.process_videos:
-            command += '%s -o "%s.ass" -i "%s.xml" -d 50 -S 55\n' % (exe_path, record, record)
-        print(command)
-        thread = subprocess.Popen(args=command, encoding='utf-8', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        thread.wait()
-        print(thread.returncode)
+            command += '%s -o "%s.ass" -i "%s.xml" -d 50 -S 55 --ignore-warnings\n' % (exe_path, record, record)
+        logging.debug('(danmaku factory) command: %s' % command)
+        thread = subprocess\
+            .Popen(args=command, encoding='utf-8', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdoutdata, stderrdata = thread.communicate(input=None)
+        logging.debug('std out data: %s\nstd err data: %s' % (stdoutdata, stderrdata))
+        # 检查是否有flv对应的ass，没有则创建空文件
+        for record in self.process_videos:
+            if not os.path.exists('%s.ass' % record):
+                logging.info('file %s.xml does not have appropriate ass file' % record)
+                open('%s.ass' % record, 'a').close()
+
+    async def composite(self) -> list[str]:
+        exe_path = 'resources\\ffmpeg.exe'
+        command = ''
+        index = 0
+        results = []
+        for record in self.process_videos:
+            index += 1
+            results.append('out%d.flv' % index)
+            command += '%s -i "%s.flv" -vf subtitles="%s.ass" -vcodec libx264 "out%d.flv"\n' \
+                       % (exe_path, record, record, index)
+        logging.debug('(ffmpeg) command: %s' % command)
+        thread = subprocess \
+            .Popen(args=command, encoding='utf-8', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdoutdata, stderrdata = thread.communicate(input=None)
+        logging.debug('std out data: %s\nstd err data: %s' % (stdoutdata, stderrdata))
+        return results
