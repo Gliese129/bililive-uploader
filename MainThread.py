@@ -1,6 +1,7 @@
 import datetime
 import logging
 import threading
+import asyncio
 from utils.BilibiliUploader import Uploader
 from utils.VideoProcessor import Processor
 from config import RoomConfig, GlobalConfig
@@ -34,6 +35,7 @@ async def session_end(json_request: dict, global_config: GlobalConfig, room_conf
                             start_time=process.start_time, live_title=process.title,
                             room_id=room_id)
         await uploader.upload()
+    return 0
 
 
 class ProcessThread (threading.Thread):
@@ -48,6 +50,7 @@ class ProcessThread (threading.Thread):
         self.data = data
 
     def run(self):
+        logging.info('starting thread: %s...' % self.event_type)
         if self.event_type == 'SessionStarted':
             logging.info('received webhook: session started')
             session_start(**self.data)
@@ -56,4 +59,5 @@ class ProcessThread (threading.Thread):
             file_open(**self.data)
         elif self.event_type == 'SessionEnded':
             logging.info('received webhook: session ended')
-            session_end(**self.data)
+            loop = asyncio.get_event_loop()
+            loop.run_until_complete(asyncio.wait([session_end(**self.data)]))

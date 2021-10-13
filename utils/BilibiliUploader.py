@@ -1,5 +1,5 @@
+# -*- coding: utf-8 -*-
 import logging
-import os.path
 import datetime
 from bilibili_api import live, video_uploader, user
 from utils import FileUtils
@@ -14,6 +14,7 @@ class Uploader:
     description: str
     tags: str
     title: str
+    live_title: str
     parent_area: str
     child_area: str
     start_time: datetime
@@ -31,14 +32,15 @@ class Uploader:
         self.parent_area = parent_area
         self.child_area = child_area
         self.start_time = start_time
-        self.set_title(title=room_config.title, live_title=live_title)
+        self.title = room_config.title
+        self.live_title = live_title
         self.room_id = room_id
 
-    async def set_title(self, title: str, live_title: str):
+    async def set_title(self, title: str):
         anchor = await self.get_anchor()
         self.anchor = anchor
         title.replace('${anchor}', anchor)
-        title.replace('${title}', live_title)
+        title.replace('${title}', self.live_title)
         title.replace('${date}', self.start_time.strftime('%Y-%m-%d'))
         title.replace('${time}', self.start_time.strftime('%H:%M:%S'))
         title.replace('${parent_area}', self.parent_area)
@@ -81,7 +83,13 @@ class Uploader:
         return anchor
 
     async def upload(self):
-        await self.credential.login()
+        await self.set_title(title=self.title)
+        try:
+            await self.credential.login()
+        except Exception as e:
+            logging.error(e)
+            logging.error('this error might caused by wrong credential, '
+                          'which means you should check if username or password is wrong')
         tid = self.fetch_channel(parent_area=self.parent_area, child_area=self.child_area)
         meta = {
             'copyright': 2,  # 投稿类型 1-自制，2-转载

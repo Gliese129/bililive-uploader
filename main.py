@@ -1,11 +1,12 @@
-# coding=utf-8
+# -*- coding: utf-8 -*-
 from config import GlobalConfig, RoomConfig
 from quart import Quart, request, Response
 import datetime
-from thread import ProcessThread
+from MainThread import ProcessThread
 from utils.VideoProcessor import Processor
 import logging
-
+import nest_asyncio
+nest_asyncio.apply()
 app = Quart(__name__)
 logging.basicConfig(level=logging.DEBUG)
 
@@ -23,19 +24,16 @@ async def processor():
     event_type = json_request['EventType']
     event_data = json_request['EventData']
     room_id = event_data['RoomId']
+    data = {}
     if event_type == 'SessionStarted':
         data = {
             'room_id': room_id
         }
-        thread = ProcessThread(name=event_type, data=data)
-        thread.run()
     elif event_type == 'FileOpening':
         data = {
             'room_id': room_id,
             'event_data': event_data
         }
-        thread = ProcessThread(name=event_type, data=data)
-        thread.run()
     elif event_type == 'SessionEnded':
         data = {
             'json_request': json_request,
@@ -43,8 +41,8 @@ async def processor():
             'room_config': room_config,
             'room_id': room_id
         }
-        thread = ProcessThread(name=event_type, data=data)
-        thread.run()
+    thread = ProcessThread(name=str(room_id), event_type=event_type, data=data)
+    thread.run()
     return Response(response='', status=200)
 
 

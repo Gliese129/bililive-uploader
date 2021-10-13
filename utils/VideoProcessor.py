@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 import datetime
 import os
 import subprocess
@@ -111,14 +112,13 @@ class Processor:
             command += '%s -o "%s.ass" -i "%s.xml" -d 50 -S 55 --ignore-warnings\n' % (exe_path, record, record)
         logging.debug('(danmaku factory) command: %s' % command)
         thread = subprocess\
-            .Popen(args=command, encoding='utf-8', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            .Popen(args=command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdoutdata, stderrdata = thread.communicate(input=None)
         logging.debug('std out data: %s\nstd err data: %s' % (stdoutdata, stderrdata))
-        # 检查是否有flv对应的ass，没有则创建空文件
+        # 检查是否有flv对应的ass，没有则警告
         for record in self.process_videos:
             if not os.path.exists('%s.ass' % record):
-                logging.info('file %s.xml does not have appropriate ass file' % record)
-                open('%s.ass' % record, 'a').close()
+                logging.warning('file %s.xml does not have appropriate ass file' % record)
 
     async def composite(self) -> list[str]:
         exe_path = 'resources\\ffmpeg.exe'
@@ -127,12 +127,19 @@ class Processor:
         results = []
         for record in self.process_videos:
             index += 1
-            results.append('out%d.flv' % index)
-            command += '%s -i "%s.flv" -vf subtitles="%s.ass" -vcodec libx264 "out%d.flv"\n' \
-                       % (exe_path, record, record, index)
+            output = os.path.join(self.process_path, self.session_id, 'out%d.flv' % index)
+            results.append(output)
+            if os.path.exists('%s.ass' % record):
+                # 存在，则合并ass和flv
+                command += '%s -i "%s.flv" -vf subtitles="%s.ass" -vcodec libx264 "%s"\n' \
+                        % (exe_path, record, record, output)
+            else:
+                # 不存在，则单纯拷贝（保证out文件存在）
+                command += '%s -i "%s.flv" -c copy "%s"\n' \
+                        % (exe_path, record, output)
         logging.debug('(ffmpeg) command: %s' % command)
         thread = subprocess \
-            .Popen(args=command, encoding='utf-8', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+            .Popen(args=command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdoutdata, stderrdata = thread.communicate(input=None)
         logging.debug('std out data: %s\nstd err data: %s' % (stdoutdata, stderrdata))
         return results
