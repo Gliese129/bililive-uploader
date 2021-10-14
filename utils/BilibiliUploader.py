@@ -86,34 +86,36 @@ class Uploader:
         await self.set_title(title=self.title)
         try:
             await self.credential.login()
+            tid = self.fetch_channel(parent_area=self.parent_area, child_area=self.child_area)
+            meta = {
+                'copyright': 2,  # 投稿类型 1-自制，2-转载
+                'source': 'https://live.bilibili.com/%d' % self.room_id,  # 视频来源。投稿类型为转载时注明来源，为原创时为空
+                'desc': self.description,  # 视频简介
+                'dynamic': '录播信息:\n开始时间: %s\n主播: %s' %
+                           (self.start_time.strftime('%Y-%m-%d %H:%M:%S'), self.anchor),  # 动态信息
+                'desc_format_id': 0,
+                'open_elec': 0,  # 是否展示充电信息  1-是，0-否
+                'no_reprint': 0,  # 显示未经作者授权禁止转载，仅当为原创视频时有效  1-启用，0-关闭
+                'subtitles': {
+                    "lan": '',  # 字幕投稿语言，不清楚作用请将该项设置为空
+                    'open': 1  # 是否启用字幕投稿，1 or 0
+                },
+                'interactive': 0,
+                'tag': self.tags,  # 视频标签。使用英文半角逗号分隔的标签组。示例：标签1,标签2,标签3
+                'tid': tid,  # 分区ID。可以使用 channel 模块进行查询
+                'title': self.title,  # 视频标题 【主播】 标题 时间
+                'up_close_danmaku': False,  # 是否关闭弹幕
+                'up_close_reply': False,  # 是否关闭评论
+            }
+            pages = self.set_pages(videos=self.videos)
+            uploader = video_uploader.VideoUploader(pages=pages, meta=meta, credential=self.credential)
+            logging.info('uploading...')
+            logging.debug('file info:\ntitle: %s\ntid: %d\ntags: %s' % (self.title, tid, self.tags))
+            ids = await uploader.start()
+            logging.info('uploading finished, bvid=%s, aid=%s' % (ids['bvid'], ids['aid']))
         except Exception as e:
             logging.error(e)
             logging.error('this error might caused by wrong credential, '
-                          'which means you should check if username or password is wrong')
-        tid = self.fetch_channel(parent_area=self.parent_area, child_area=self.child_area)
-        meta = {
-            'copyright': 2,  # 投稿类型 1-自制，2-转载
-            'source': 'https://live.bilibili.com/%d' % self.room_id,  # 视频来源。投稿类型为转载时注明来源，为原创时为空
-            'desc': self.description,  # 视频简介
-            'dynamic': '录播信息:\n开始时间: %s\n主播: %s' %
-                       (self.start_time.strftime('%Y-%m-%d %H:%M:%S'), self.anchor),  # 动态信息
-            'desc_format_id': 0,
-            'open_elec': 0,  # 是否展示充电信息  1-是，0-否
-            'no_reprint': 0,  # 显示未经作者授权禁止转载，仅当为原创视频时有效  1-启用，0-关闭
-            'subtitles': {
-                "lan": '',  # 字幕投稿语言，不清楚作用请将该项设置为空
-                'open': 1  # 是否启用字幕投稿，1 or 0
-                },
-            'interactive': 0,
-            'tag': self.tags,  # 视频标签。使用英文半角逗号分隔的标签组。示例：标签1,标签2,标签3
-            'tid': tid,  # 分区ID。可以使用 channel 模块进行查询
-            'title': self.title,  # 视频标题 【主播】 标题 时间
-            'up_close_danmaku': False,  # 是否关闭弹幕
-            'up_close_reply': False,  # 是否关闭评论
-        }
-        pages = self.set_pages(videos=self.videos)
-        uploader = video_uploader.VideoUploader(pages=pages, meta=meta, credential=self.credential)
-        logging.info('uploading...')
-        logging.debug('file info:\ntitle: %s\ntid: %d\ntags: %s' % (self.title, tid, self.tags))
-        ids = await uploader.start()
-        logging.info('uploading finished, bvid=%s, aid=%s' % (ids['bvid'], ids['aid']))
+                          'which means you should check if username or password is right')
+        finally:
+            return

@@ -1,9 +1,12 @@
 import datetime
 import logging
+import os
 import threading
 import asyncio
 from utils.BilibiliUploader import Uploader
 from utils.VideoProcessor import Processor
+from utils.FileUtils import DeleteFolder, DeleteFiles
+from WebhookThread import WebhookThread
 from config import RoomConfig, GlobalConfig
 
 
@@ -29,12 +32,23 @@ async def session_end(json_request: dict, global_config: GlobalConfig, room_conf
         await process.make_damaku()
         logging.info('mixing damaku into videos...')
         result_videos = await process.composite()
-        logging.info('successfully proceed videos, now starting to upload...')
+        logging.info('successfully proceed videos!')
+        webhook = WebhookThread(name='WebhookThread', webhooks=global_config.webhooks, event_data=json_request['EventData'],
+                                proceed_videos=result_videos,
+                                work_dic=os.path.join(global_config.process_dir, process.session_id))
+        webhook.run()
+        logging.info('starting to upload...')
         uploader = Uploader(global_config=global_config, room_config=process.config, videos=result_videos,
                             parent_area=process.parent_area, child_area=process.child_area,
                             start_time=process.start_time, live_title=process.title,
                             room_id=room_id)
         await uploader.upload()
+        dir_path = os.path.join(global_config.process_dir, process.session_id)
+        logging.info('deleting proceed videos in folder %s...' % dir_path)
+        DeleteFolder(dir_path)
+    if global_config.delete_flag:
+        logging.info('deleting origin videos by global config...')
+        DeleteFiles(process.origin_videos)
     return 0
 
 
@@ -49,7 +63,7 @@ class ProcessThread (threading.Thread):
         self.event_type = event_type
         self.data = data
 
-    def run(self):
+    def run(self) -> None:
         logging.info('starting thread: %s...' % self.event_type)
         if self.event_type == 'SessionStarted':
             logging.info('received webhook: session started')

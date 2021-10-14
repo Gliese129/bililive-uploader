@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+import logging
 import os
 import yaml
 from shutil import copy
@@ -41,3 +42,16 @@ def CopyFiles(files: list[str], target: str, types: list[str]) -> list[str]:
             copy(src=file + '.' + file_type, dst=target)
         new_files.append(os.path.join(target, os.path.split(file)[1]))
     return new_files
+
+
+def DeleteFolder(folder: str):
+    if os.path.exists(folder):
+        os.removedirs(folder)
+
+
+def DeleteFiles(files: list[str]):
+    for file in files:
+        file += '.flv'
+        if os.path.exists(file):
+            logging.debug('deleting file: %s' % file)
+            os.remove(file)
