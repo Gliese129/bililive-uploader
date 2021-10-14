@@ -33,8 +33,8 @@ async def session_end(json_request: dict, global_config: GlobalConfig, room_conf
         logging.info('mixing damaku into videos...')
         result_videos = await process.composite()
         logging.info('successfully proceed videos!')
-        webhook = WebhookThread(name='WebhookThread', webhooks=global_config.webhooks, event_data=json_request['EventData'],
-                                proceed_videos=result_videos,
+        webhook = WebhookThread(name='WebhookThread', webhooks=global_config.webhooks,
+                                event_data=json_request['EventData'], proceed_videos=result_videos,
                                 work_dic=os.path.join(global_config.process_dir, process.session_id))
         webhook.run()
         logging.info('starting to upload...')
@@ -48,7 +48,7 @@ async def session_end(json_request: dict, global_config: GlobalConfig, room_conf
         DeleteFolder(dir_path)
     if global_config.delete_flag:
         logging.info('deleting origin videos by global config...')
-        DeleteFiles(process.origin_videos)
+        DeleteFiles(files=process.origin_videos, types=['flv', 'xml'])
     return 0
 
 

@@ -3,7 +3,7 @@ import json
 import logging
 import os
 import yaml
-from shutil import copy
+from shutil import copy, rmtree
 
 
 def YmlReader(path: str) -> dict:
@@ -46,12 +46,12 @@ def CopyFiles(files: list[str], target: str, types: list[str]) -> list[str]:
 
 def DeleteFolder(folder: str):
     if os.path.exists(folder):
-        os.removedirs(folder)
+        rmtree(folder)
 
 
-def DeleteFiles(files: list[str]):
+def DeleteFiles(files: list[str], types: list[str]):
     for file in files:
-        file += '.flv'
-        if os.path.exists(file):
-            logging.debug('deleting file: %s' % file)
-            os.remove(file)
+        for file_type in types:
+            delete_file = '%s.%s' % (file, file_type)
+            logging.debug('deleting file: %s' % delete_file)
+            os.remove(delete_file)

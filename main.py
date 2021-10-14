@@ -6,6 +6,8 @@ from MainThread import ProcessThread
 from utils.VideoProcessor import Processor
 import logging
 import nest_asyncio
+import getopt
+import sys
 nest_asyncio.apply()
 app = Quart(__name__)
 logging.basicConfig(level=logging.DEBUG)
@@ -47,7 +49,16 @@ async def processor():
 
 
 if __name__ == '__main__':
-    config_path = '.\\config-example'
+    config_path = ''
+    try:
+        options, args = getopt.getopt(sys.argv[1:], 'c:', ['config='])
+    except Exception as e:
+        logging.error(e)
+        sys.exit(2)
+    for option, value in options:
+        if option in ("-c", "--config"):
+            config_path = value
+            logging.info('set config path: %s' % config_path)
     room_config = RoomConfig(config_path)
     global_config = GlobalConfig(config_path)
     logging.info('application run at port: %d' % global_config.port)
