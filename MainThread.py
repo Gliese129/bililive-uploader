@@ -73,5 +73,7 @@ class ProcessThread (threading.Thread):
             file_open(**self.data)
         elif self.event_type == 'SessionEnded':
             logging.info('received webhook: session ended')
-            loop = asyncio.get_event_loop()
-            loop.run_until_complete(asyncio.wait([session_end(**self.data)]))
+            loop = asyncio.new_event_loop()
+            loop.run_until_complete(session_end(**self.data))
+            loop.close()
+        logging.info('thread: %s ended' % self.event_type)

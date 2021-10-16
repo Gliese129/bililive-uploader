@@ -1,9 +1,7 @@
 # -*- coding: utf-8 -*-
 from config import GlobalConfig, RoomConfig
 from quart import Quart, request, Response
-import datetime
 from MainThread import ProcessThread
-from utils.VideoProcessor import Processor
 import logging
 import nest_asyncio
 import getopt
@@ -11,13 +9,6 @@ import sys
 nest_asyncio.apply()
 app = Quart(__name__)
 logging.basicConfig(level=logging.DEBUG)
-
-
-async def session_started(room_id: int):
-    logging.info('received webhook: session started')
-    start_time = datetime.datetime.now()
-    logging.debug('room: %d  live start at %s' % (room_id, start_time.strftime('%Y-%m-%d %H:%M:%S')))
-    Processor.live_start(room_id=room_id, start_time=start_time)
 
 
 @app.route('/video-process/v2', methods=['POST'])

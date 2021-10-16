@@ -1,6 +1,6 @@
-FROM Python 3.9.7
+FROM python
 
-MAINTAINER Gliese "3207960592@qq.com"
+MAINTAINER 3207960592@qq.com
 
 COPY ./requirements.txt /requirements.txt
 
@@ -8,8 +8,10 @@ WORKDIR /
 
 RUN pip3 install -r requirements.txt
 
-COPY . /
+COPY ./*.py /
+COPY ./utils /utils
+COPY ./resources /resources
 
-ENTRYPOINT [ "python3" ]
+ENTRYPOINT [ "python3", "main.py" ]
 
-CMD [ "main.py" ]
+CMD [ "-c", "/config" ]
