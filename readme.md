@@ -9,7 +9,7 @@ python main.py -c ${your config path}
 
 #### docker 启动
 ~~~ commandline
-docker run -d -p ${port-outside}:8866 -v ${config-path}:/config -v ${bililive-recorder-path}:/recorder -v ${video-process-path}:/process  --name record-uploader Gliese/record-uploader:latest
+docker run -d -p ${port-outside}:8866 -v ${config-path}:/config -v ${bililive-recorder-path}:/recorder -v ${video-process-path}:/process  --name record-uploader gliese/record-uploader:latest
 ~~~
 ~~~ yaml
 # 请确保 global-config.yml 中:
