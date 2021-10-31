@@ -25,6 +25,7 @@ class Processor:
     recorder_path: str
     process_path: str
     start_time: datetime
+    isDocker: bool
 
     def __init__(self, event_data: dict, global_config: GlobalConfig):
         self.room_id = event_data['RoomId']
@@ -38,6 +39,7 @@ class Processor:
         self.process_videos = []
         self.recorder_path = global_config.recorder_dir
         self.process_path = global_config.process_dir
+        self.isDocker = global_config.isDocker
         rooms = FileUtils.ReadJson(time_cache)
         self.start_time = datetime.datetime.fromtimestamp(rooms[str(self.room_id)])
 
@@ -106,7 +108,10 @@ class Processor:
         return self.config
 
     async def make_damaku(self):
-        exe_path = 'resources\\DanmakuFactory.exe'
+        if self.isDocker:
+            exe_path = '/DanmakuFactory/DanmakuFactory'
+        else:
+            exe_path = 'resources\\DanmakuFactory.exe'
         command = ''
         for record in self.process_videos:
             command += '%s -o "%s.ass" -i "%s.xml" -d 50 -S 55 --ignore-warnings\n' % (exe_path, record, record)
@@ -121,7 +126,10 @@ class Processor:
                 logging.warning('file %s.xml does not have appropriate ass file' % record)
 
     async def composite(self) -> list[str]:
-        exe_path = 'resources\\ffmpeg.exe'
+        if self.isDocker:
+            exe_path = 'ffmpeg'
+        else:
+            exe_path = 'resources\\ffmpeg'
         command = ''
         index = 0
         results = []

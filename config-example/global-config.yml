@@ -1,7 +1,8 @@
 recorder:
-  recorder-dir: E:\live stream  # 录播姬工作目录
-  process-dir: E:\live stream\proceed  # 输出位置
+  recorder-dir: F:\live stream  # 录播姬工作目录
+  process-dir: F:\live stream\proceed  # 输出位置
   delete-after-upload: true  # 是否在上传完成后删除
+  is-docker: true  # 是否使用docker
 
 server:
   port: 8866 # 运行端口

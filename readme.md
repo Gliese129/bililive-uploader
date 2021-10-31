@@ -2,24 +2,39 @@
 
 ## 使用文档
 ### 运行程序
-python 启动
+#### python 启动
 ~~~ commandline
 python main.py -c ${your config path}
 ~~~
-docker 启动
+
+#### docker 启动
 ~~~ commandline
-施工中...
+docker run -d -p ${port-outside}:8866 -v ${config-path}:/config -v ${bililive-recorder-path}:/recorder -v ${video-process-path}:/process  --name record-uploader Gliese/record-uploader:latest
 ~~~
+~~~ yaml
+# 请确保 global-config.yml 中:
+recorder:
+   is-docker: true
+   
+# 此时下面的字段将没有意义
+recorder:
+   recorder-dir: /recorder
+   process-dir: /process
+server:
+   port: /8866
+~~~
+
 **注意:确保该目录下存在 global-config.yml 和 room-config.yml**
 
-**请在B站录播姬webhook v2 中加上[http://${url}:${port}//video-process/v2]()**
+**请在B站录播姬webhook v2 中加上[http://${url}:${port}//video-process]()**
 ### 配置文件
 #### global-config.yml
 ~~~ yaml
 recorder:
   recorder-dir:  # 录播姬工作目录
   process-dir:  # 输出位置*1
-  delete-after-upload: true  # 是否在上传完成后删除*2
+  delete-after-upload:  # 是否在上传完成后删除*2
+  is-docekr:  # 是否在docker中运行
 server:
   port: # 运行端口
   webhooks: # webhook, 在视频处理完成后触发
@@ -30,7 +45,7 @@ account:
 1. 建议将此目录同时作为配置文件放置目录，~~因为这样省事~~
 2. 如果设置为true，即便录播不需要处理也会删除
 
-webhook内容(例子)：
+webhook内容:
 ~~~ json
 POST /test
 Host: 127.0.0.1

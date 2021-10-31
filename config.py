@@ -9,6 +9,7 @@ class GlobalConfig:
     port: int
     webhooks: list[str]
     account: dict
+    isDocker: bool
 
     def __init__(self, folder_path: str):
         config = FileUtils.YmlReader(os.path.join(folder_path, 'global-config.yml'))
@@ -18,6 +19,11 @@ class GlobalConfig:
         self.port = config['server']['port']
         self.webhooks = config['server']['webhooks']
         self.account = config['account']
+        self.isDocker = config['recorder']['is-docker']
+        if self.isDocker:
+            self.recorder_dir = '/recorder'
+            self.process_dir = '/process'
+            self.port = 8866
 
 
 class Condition:
