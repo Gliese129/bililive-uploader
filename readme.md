@@ -21,7 +21,7 @@ recorder:
    recorder-dir: /recorder
    process-dir: /process
 server:
-   port: /8866
+   port: 8866
 ~~~
 
 **注意:确保该目录下存在 global-config.yml 和 room-config.yml**
