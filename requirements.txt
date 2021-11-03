@@ -3,7 +3,7 @@ aiohttp==3.7.4.post0
 async-timeout==3.0.1
 attrs==21.2.0
 beautifulsoup4==4.9.3
-bilibili-api==8.3.1
+bilibili-api==9.0.1
 blinker==1.4
 Brotli==1.0.9
 certifi==2021.10.8

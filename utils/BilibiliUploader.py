@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 import logging
 import datetime
+import warnings
+
 from bilibili_api import live, video_uploader, user
 from utils import FileUtils
 from config import Room, GlobalConfig
@@ -9,7 +11,7 @@ channel_data = './resources/channel.json'
 
 
 class Uploader:
-    credential: video_uploader.VideoUploaderCredential
+    credential: video_uploader.Credential
     videos: list[str]
     description: str
     tags: str
@@ -21,11 +23,10 @@ class Uploader:
     room_id: int
     anchor: str
 
-    def __init__(self, global_config: GlobalConfig, room_config: Room, videos: list[str],
+    def __init__(self, access_key: dict, room_config: Room, videos: list[str],
                  parent_area: str, child_area: str, start_time: datetime, live_title: str,
-                 room_id: int):
-        self.credential = video_uploader.VideoUploaderCredential(account=global_config.account['username'],
-                                                                 password=global_config.account['password'])
+                 room_id: int, session_id: str, origin_videos: list[str]):
+        self.credential = video_uploader.Credential(**access_key)
         self.videos = videos
         self.description = room_config.description
         self.tags = ','.join(room_config.tags)
@@ -50,14 +51,16 @@ class Uploader:
     @staticmethod
     def set_pages(videos: list[str]) -> list[video_uploader.VideoUploaderPage]:
         pages = []
+        index = 1
         for video in videos:
             page_info = {
-                'video_stream': open(video, 'rb'),
-                'title': video,
-                'extension': 'flv'
+                'path': video,
+                'title': f'part{index}',
+                'description': ''
             }
             page = video_uploader.VideoUploaderPage(**page_info)
             pages.append(page)
+            index += 1
         return pages
 
     @staticmethod
@@ -85,7 +88,6 @@ class Uploader:
     async def upload(self):
         await self.set_title(title=self.title)
         try:
-            await self.credential.login()
             tid = self.fetch_channel(parent_area=self.parent_area, child_area=self.child_area)
             meta = {
                 'copyright': 2,  # 投稿类型 1-自制，2-转载
@@ -108,14 +110,13 @@ class Uploader:
                 'up_close_reply': False,  # 是否关闭评论
             }
             pages = self.set_pages(videos=self.videos)
-            uploader = video_uploader.VideoUploader(pages=pages, meta=meta, credential=self.credential)
-            logging.info('uploading...')
-            logging.debug('file info:\ntitle: %s\ntid: %d\ntags: %s' % (self.title, tid, self.tags))
-            ids = await uploader.start()
-            logging.info('uploading finished, bvid=%s, aid=%s' % (ids['bvid'], ids['aid']))
+            for page in pages:
+                uploader = video_uploader.VideoUploader(pages=[page], meta=meta, credential=self.credential)
+                logging.info('uploading...')
+                logging.debug('file info:\ntitle: %s\ntid: %d\ntags: %s' % (self.title, tid, self.tags))
+                ids = await uploader.start()
+                logging.info('uploading finished, bvid=%s, aid=%s' % (ids['bvid'], ids['aid']))
         except Exception as e:
             logging.error(e)
-            logging.error('this error might caused by wrong credential, '
-                          'which means you should check if username or password is right')
         finally:
             return

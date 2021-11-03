@@ -1,4 +1,7 @@
 # -*- coding: utf-8 -*-
+import asyncio
+import threading
+
 from config import GlobalConfig, RoomConfig
 from quart import Quart, request, Response
 from MainThread import ProcessThread
@@ -6,10 +9,16 @@ import logging
 import nest_asyncio
 import getopt
 import sys
+import queue
+from MainThread import video_upload
+
+from utils.BilibiliUploader import Uploader
+
 nest_asyncio.apply()
 app = Quart(__name__)
 
 logging.basicConfig(level=logging.DEBUG)
+upload_queue = queue.Queue()
 
 
 @app.route('/video-process', methods=['POST'])
@@ -35,10 +44,23 @@ async def processor():
             'room_config': room_config,
             'room_id': room_id
         }
-    thread = ProcessThread(name=str(room_id), event_type=event_type, data=data)
+    thread = ProcessThread(name=str(room_id), event_type=event_type, data=data, upload_queue=upload_queue)
     thread.run()
-    return Response(response='<h3>if you are able to see this page, it means you have run it successfully</h3>'
-                    , status=200)
+    return Response(response='<h3>request received, now processing videos</h3>', status=200)
+
+
+@app.route('/video-upload', methods=['GET'])
+async def uploader():
+    access_key = {
+        'sessdata': request.args.get('sessdata'),
+        'bili_jct': request.args.get('bili_jct'),
+        'buvid3': request.args.get('buvid3')
+    }
+    while not upload_queue.empty():
+        video_info = upload_queue.get()
+        thread = threading.Thread(target=video_upload, args=(global_config, video_info, access_key))
+        thread.start()
+    return Response(response='<h3>request received, now uploading videos</h3>', status=200)
 
 
 @app.route('/test', methods=['GET', 'POST'])

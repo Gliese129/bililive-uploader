@@ -2,14 +2,10 @@ recorder:
   recorder-dir: F:\live stream  # 录播姬工作目录
   process-dir: F:\live stream\proceed  # 输出位置
   delete-after-upload: true  # 是否在上传完成后删除
-  is-docker: true  # 是否使用docker
+  is-docker: false  # 是否使用docker
 
 server:
   port: 8866 # 运行端口
   webhooks: # webhook, 在上传完成后触发
     - localhost:8080
     - localhost:8866
-
-account:
-  username: your account # 账号
-  password: your password # 密码

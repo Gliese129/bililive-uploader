@@ -8,7 +8,6 @@ class GlobalConfig:
     delete_flag: bool
     port: int
     webhooks: list[str]
-    account: dict
     isDocker: bool
 
     def __init__(self, folder_path: str):
@@ -25,7 +24,6 @@ class GlobalConfig:
         self.delete_flag = False if config['recorder']['delete-after-upload'] is None \
             else config['recorder']['delete-after-upload']
         self.webhooks = [] if config['server']['webhooks'] is None else config['server']['webhooks']
-        self.account = config['account']
 
 
 class Condition:
