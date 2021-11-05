@@ -56,16 +56,17 @@ async def uploader():
         'bili_jct': request.args.get('bili_jct'),
         'buvid3': request.args.get('buvid3')
     }
+    # copy upload_queue to video_queue
+    video_queue = queue.Queue()
     while not upload_queue.empty():
-        video_info = upload_queue.get()
-        thread = threading.Thread(target=video_upload, args=(global_config, video_info, access_key))
-        thread.start()
+        video_queue.put(upload_queue.get())
+    # upload videos in video_queue
+    while not video_queue.empty():
+        video_info = video_queue.get()
+        asyncio.run_coroutine_threadsafe(video_upload(global_config=global_config, video_info=video_info,
+                                                      upload_queue=upload_queue, **access_key),
+                                         loop=asyncio.new_event_loop())
     return Response(response='<h3>request received, now uploading videos</h3>', status=200)
-
-
-@app.route('/test', methods=['GET', 'POST'])
-async def test():
-    return Response(response='<h1>This is a network test page</h1>', status=200)
 
 
 if __name__ == '__main__':

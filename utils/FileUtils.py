@@ -7,12 +7,22 @@ from shutil import copy, rmtree
 
 
 def YmlReader(path: str) -> dict:
+    """
+    Read yaml file
+    :param path: file path
+    :return: dictionary
+    """
     with open(path, 'r', encoding='utf-8') as f:
         result = yaml.load(f.read(), Loader=yaml.Loader)
     return result
 
 
 def ReadJson(path: str) -> dict:
+    """
+    Read json file
+    :param path: file path
+    :return: json dictionary
+    """
     if not os.path.exists(path):
         folder_path = os.path.dirname(path)
         if not os.path.exists(folder_path):
@@ -24,7 +34,13 @@ def ReadJson(path: str) -> dict:
     return result
 
 
-def WriteDict(path: str, obj: dict):
+def WriteDict(path: str, obj: dict) -> None:
+    """
+    Write dictionary to json file
+    :param path: file path
+    :param obj: object need to write
+    :return: None
+    """
     if not os.path.exists(path):
         folder_path = os.path.dirname(path)
         if not os.path.exists(folder_path):
@@ -34,6 +50,13 @@ def WriteDict(path: str, obj: dict):
 
 
 def CopyFiles(files: list[str], target: str, types: list[str]) -> list[str]:
+    """
+    Copy files to target folder
+    :param files: files need to copy(no extension)
+    :param target: target folder
+    :param types: file extensions
+    :return: files copied
+    """
     if not os.path.exists(target):
         os.makedirs(target)
     new_files = []
@@ -44,12 +67,23 @@ def CopyFiles(files: list[str], target: str, types: list[str]) -> list[str]:
     return new_files
 
 
-def DeleteFolder(folder: str):
+def DeleteFolder(folder: str) -> None:
+    """
+    Delete an empty folder
+    :param folder: folder path
+    :return: None
+    """
     if os.path.exists(folder):
         rmtree(folder)
 
 
-def DeleteFiles(files: list[str], types: list[str]):
+def DeleteFiles(files: list[str], types: list[str]) -> None:
+    """
+    Delete files
+    :param files: files need to delete(no extension)
+    :param types: file extensions
+    :return: None
+    """
     for file in files:
         for file_type in types:
             delete_file = '%s.%s' % (file, file_type)

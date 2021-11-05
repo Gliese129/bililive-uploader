@@ -1,5 +1,4 @@
-将B站录播姬录制的录播处理后上传到B站
-
+###将B站录播姬录制的录播处理后上传到B站
 ## 使用文档
 ### 运行程序
 #### python 启动
@@ -25,8 +24,16 @@ server:
 ~~~
 
 **注意:确保该目录下存在 global-config.yml 和 room-config.yml**
-
 **请在B站录播姬webhook v2 中加上[http://${url}:${port}//video-process]()**
+#### 上传视频
+
+由于B站给所有登录api加上了验证码，所以处理完的录播将会放入上传队列等待上传，
+此时需要向[http://{your host}/video-upload]()发送get请求，请求中需要
+带上sessdata,bili_jct,buvid3这三个参数。上传失败的视频会重新放入队列中，
+等待下次上传。
+
+**注意:重启程序会导致上传队列清空**
+
 ### 配置文件
 #### global-config.yml
 ~~~ yaml

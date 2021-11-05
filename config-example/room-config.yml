@@ -1,12 +1,11 @@
 rooms:
-  - id: 164725  # 需要上传的直播间 ID，长号短号均可
-    tags: 3号直播,test # 上传所需的tag，英文逗号分割
-    title: ${title} ${time} # 视频标题，可以使用模版
-    description:  # 视频描述(不填则默认为下列内容)
-      本录播由@_Gliese_的脚本自动处理上传
-    dynamic:  # 动态简介(不填则默认没有)
+  - id:  # 需要上传的直播间 ID，长号短号均可
+    tags:  # 上传所需的tag，英文逗号分割
+    title:  # 视频标题，可以使用模版
+    description:  # 视频描述，可以使用模版
+    dynamic:  # 动态简介，可以使用模版
     conditions:  # 额外的tag条件，注意判断逻辑为&
-    - item: name # 字段，例如title
-      regexp: 3 # 匹配的正则
-      tags: 3a # 该条件下额外的tag
-      process: true # 当匹配到对应条件时是否处理，默认为true
+    - item:  # 字段，例如title
+      regexp:  # 匹配的正则
+      tags:  # 该条件下额外的tag
+      process:  # 当匹配到对应条件时是否处理，默认为true
