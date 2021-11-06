@@ -63,9 +63,9 @@ async def uploader():
     # upload videos in video_queue
     while not video_queue.empty():
         video_info = video_queue.get()
-        asyncio.run_coroutine_threadsafe(video_upload(global_config=global_config, video_info=video_info,
-                                                      upload_queue=upload_queue, **access_key),
-                                         loop=asyncio.new_event_loop())
+        thread = threading.Thread(target=video_upload, args=(global_config, access_key, upload_queue, video_info)
+                                  , name='upload_thread')
+        thread.start()
     return Response(response='<h3>request received, now uploading videos</h3>', status=200)
 
 

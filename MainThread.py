@@ -76,7 +76,8 @@ async def session_end(upload_queue: queue.Queue, json_request: dict, global_conf
         })
 
 
-def video_upload(global_config: GlobalConfig, access_key: dict, upload_queue: queue.Queue, video_info: dict) -> None:
+def video_upload(global_config: GlobalConfig, access_key: dict, upload_queue: queue.Queue, video_info: dict) \
+        -> None:
     """
     上传视频
     :param upload_queue: 队列，用于存放上传失败的视频
@@ -85,6 +86,7 @@ def video_upload(global_config: GlobalConfig, access_key: dict, upload_queue: qu
     :param access_key: 密钥
     :return:
     """
+    asyncio.set_event_loop(asyncio.new_event_loop())
     uploader = Uploader(access_key=access_key, **video_info)
     result = asyncio.run(uploader.upload())
     if result:
