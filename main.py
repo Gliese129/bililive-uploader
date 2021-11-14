@@ -44,7 +44,7 @@ async def processor():
             'room_config': room_config,
             'room_id': room_id
         }
-    thread = ProcessThread(name=str(room_id), event_type=event_type, data=data, upload_queue=upload_queue)
+    thread = ProcessThread(name=str(f'process {room_id}'), event_type=event_type, data=data, upload_queue=upload_queue)
     thread.run()
     return Response(response='<h3>request received, now processing videos</h3>', status=200)
 
@@ -61,11 +61,22 @@ async def uploader():
     while not upload_queue.empty():
         video_queue.put(upload_queue.get())
     # upload videos in video_queue
+    threads = []
     while not video_queue.empty():
         video_info = video_queue.get()
-        thread = threading.Thread(target=video_upload, args=(global_config, access_key, upload_queue, video_info)
-                                  , name='upload_thread')
-        thread.start()
+        data = {
+            'access_key': access_key,
+            'video_info': video_info,
+            'global_config': global_config
+        }
+        await video_upload(upload_queue=upload_queue, **data)
+    # 不使用多线程，以解决多次请求时aiohttp报错的问题
+    #     thread = ProcessThread(name=str(f'upload {video_info["room_id"]}'), event_type='FileUploading', data=data,
+    #                            upload_queue=upload_queue)
+    #     thread.start()
+    #     threads.append(thread)
+    # for thread in threads:
+    #     thread.join()
     return Response(response='<h3>request received, now uploading videos</h3>', status=200)
 
 

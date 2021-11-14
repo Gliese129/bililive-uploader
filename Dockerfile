@@ -10,14 +10,14 @@ RUN apt-get install gcc -y && \
 
 # 安装构建Python所需的依赖项
 RUN apt-get install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev libbz2-dev -y
-# 安装python3.9.7
-RUN wget https://cdn.npm.taobao.org/dist/python/3.9.7/Python-3.9.7.tgz && \
-    tar -xf Python-3.9.7.tgz && \
-    cd Python-3.9.7 && \
+# 安装python3.10.0
+RUN wget https://cdn.npm.taobao.org/dist/python/3.10.0/Python-3.10.0.tgz && \
+    tar -xf Python-3.10.0.tgz && \
+    cd Python-3.10.0 && \
     ./configure && \
     make && \
     make install
-RUN rm Python-3.9.7.tgz
+RUN rm Python-3.10.0.tgz
 
 # 安装yasm
 RUN apt-get install yasm -y

@@ -76,7 +76,7 @@ async def session_end(upload_queue: queue.Queue, json_request: dict, global_conf
         })
 
 
-def video_upload(global_config: GlobalConfig, access_key: dict, upload_queue: queue.Queue, video_info: dict) \
+async def video_upload(global_config: GlobalConfig, access_key: dict, video_info: dict, upload_queue: queue.Queue) \
         -> None:
     """
     上传视频
@@ -86,9 +86,8 @@ def video_upload(global_config: GlobalConfig, access_key: dict, upload_queue: qu
     :param access_key: 密钥
     :return:
     """
-    asyncio.set_event_loop(asyncio.new_event_loop())
     uploader = Uploader(access_key=access_key, **video_info)
-    result = asyncio.run(uploader.upload())
+    result = await uploader.upload()
     if result:
         # successfully upload -> delete files
         dir_path = os.path.join(global_config.process_dir, video_info.get('session_id'))
@@ -114,7 +113,8 @@ class ProcessThread (threading.Thread):
         self.upload_queue = upload_queue
 
     def run(self) -> None:
-        logging.info('starting thread: %s...' % self.event_type)
+        logging.info('starting thread: %s...' % self.name)
+        asyncio.set_event_loop(asyncio.new_event_loop())
         if self.event_type == 'SessionStarted':
             logging.info('received webhook: session started')
             session_start(**self.data)
@@ -124,4 +124,6 @@ class ProcessThread (threading.Thread):
         elif self.event_type == 'SessionEnded':
             logging.info('received webhook: session ended')
             asyncio.run(session_end(upload_queue=self.upload_queue, **self.data))
-
+        elif self.event_type == 'FileUploading':
+            logging.info('received request: upload event')
+            asyncio.run(video_upload(upload_queue=self.upload_queue, **self.data))

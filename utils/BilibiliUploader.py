@@ -1,8 +1,6 @@
 # -*- coding: utf-8 -*-
-import asyncio
 import logging
 import datetime
-import warnings
 
 from bilibili_api import live, video_uploader, user
 from utils import FileUtils
