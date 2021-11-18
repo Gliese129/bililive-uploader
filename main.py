@@ -1,4 +1,6 @@
 # -*- coding: utf-8 -*-
+import urllib
+
 from config import GlobalConfig, RoomConfig, LiveInfo
 from quart import Quart, request, Response
 from MainThread import ProcessThread
@@ -8,6 +10,7 @@ import getopt
 import sys
 import queue
 from MainThread import video_upload
+from urllib.parse import urlencode
 
 nest_asyncio.apply()
 app = Quart(__name__)
@@ -47,8 +50,9 @@ async def processor():
 
 @app.route('/video-upload', methods=['GET'])
 async def uploader():
+    sessdata = request.args.get('sessdata')
     access_key = {
-        'sessdata': request.args.get('sessdata'),
+        'sessdata': urllib.parse.quote(sessdata),
         'bili_jct': request.args.get('bili_jct'),
         'buvid3': request.args.get('buvid3')
     }

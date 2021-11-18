@@ -72,7 +72,7 @@ class Processor:
         FileUtils.WriteDict(path=video_cache, obj=rooms)
         # 将录播文件的相对目录转为绝对目录
         for i in range(len(self.origin_videos)):
-            self.origin_videos[i] = os.path.join(self.process_path, self.origin_videos[i])
+            self.origin_videos[i] = os.path.join(self.recorder_path, self.origin_videos[i])
 
     def check_if_need_process(self, configs: RoomConfig) -> bool:
         """ 检查是否需要处理

@@ -89,7 +89,7 @@ class Room:
     conditions: list[Condition]
 
     def __init__(self, data: dict):
-        default_desc = '本录播由@_Gliese_的脚本自动处理上传data'
+        default_desc = '本录播由@_Gliese_的脚本自动处理上传'
 
         self.id = data['id']
         self.title = data['title']
@@ -101,8 +101,10 @@ class Room:
             for condition in data['conditions']:
                 self.conditions.append(Condition(condition))
         if data.get('channel') is not None:
-            channels = data['channel'].split('')
+            channels = data['channel'].split(' ')
             self.channel = (channels[0], channels[1]) if len(channels) == 2 else None
+        else:
+            self.channel = None
 
     def list_proper_conditions(self, live_info: LiveInfo) -> list[Condition]:
         """ 返回符合条件的额外条件
@@ -201,6 +203,7 @@ class VideoInfo:
     dynamic: str
     title: str
     tid: int
+    channel: (str, str)
 
     def __init__(self, room_config: Room):
         self.description = room_config.description
@@ -209,4 +212,6 @@ class VideoInfo:
         self.title = room_config.title
 
     def get_tags(self) -> str:
+        if len(self.tags) == 0:
+            return ''
         return ','.join(self.tags)
