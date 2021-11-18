@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-import asyncio
-import threading
-
-from config import GlobalConfig, RoomConfig
+from config import GlobalConfig, RoomConfig, LiveInfo
 from quart import Quart, request, Response
 from MainThread import ProcessThread
 import logging
@@ -11,8 +8,6 @@ import getopt
 import sys
 import queue
 from MainThread import video_upload
-
-from utils.BilibiliUploader import Uploader
 
 nest_asyncio.apply()
 app = Quart(__name__)
@@ -23,6 +18,7 @@ upload_queue = queue.Queue()
 
 @app.route('/video-process', methods=['POST'])
 async def processor():
+    room_config = RoomConfig(config_path)
     json_request = await request.json
     event_type = json_request['EventType']
     event_data = json_request['EventData']
@@ -35,11 +31,11 @@ async def processor():
     elif event_type == 'FileOpening':
         data = {
             'room_id': room_id,
-            'event_data': event_data
+            'file_path': event_data['RelativePath']
         }
     elif event_type == 'SessionEnded':
         data = {
-            'json_request': json_request,
+            'event_data': event_data,
             'global_config': global_config,
             'room_config': room_config,
             'room_id': room_id
@@ -61,7 +57,6 @@ async def uploader():
     while not upload_queue.empty():
         video_queue.put(upload_queue.get())
     # upload videos in video_queue
-    threads = []
     while not video_queue.empty():
         video_info = video_queue.get()
         data = {
@@ -70,13 +65,6 @@ async def uploader():
             'global_config': global_config
         }
         await video_upload(upload_queue=upload_queue, **data)
-    # 不使用多线程，以解决多次请求时aiohttp报错的问题
-    #     thread = ProcessThread(name=str(f'upload {video_info["room_id"]}'), event_type='FileUploading', data=data,
-    #                            upload_queue=upload_queue)
-    #     thread.start()
-    #     threads.append(thread)
-    # for thread in threads:
-    #     thread.join()
     return Response(response='<h3>request received, now uploading videos</h3>', status=200)
 
 
@@ -91,7 +79,6 @@ if __name__ == '__main__':
         if option in ("-c", "--config"):
             config_path = value
             logging.info('set config path: %s' % config_path)
-    room_config = RoomConfig(config_path)
     global_config = GlobalConfig(config_path)
     logging.info('application run at port: %d' % global_config.port)
     app.run(host='0.0.0.0', port=global_config.port)

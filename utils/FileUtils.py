@@ -7,8 +7,8 @@ from shutil import copy, rmtree
 
 
 def YmlReader(path: str) -> dict:
-    """
-    Read yaml file
+    """ Read yaml file
+
     :param path: file path
     :return: dictionary
     """
@@ -18,8 +18,8 @@ def YmlReader(path: str) -> dict:
 
 
 def ReadJson(path: str) -> dict:
-    """
-    Read json file
+    """ Read json file
+
     :param path: file path
     :return: json dictionary
     """
@@ -35,8 +35,8 @@ def ReadJson(path: str) -> dict:
 
 
 def WriteDict(path: str, obj: dict) -> None:
-    """
-    Write dictionary to json file
+    """  Write dict to json file
+
     :param path: file path
     :param obj: object need to write
     :return: None
@@ -50,8 +50,8 @@ def WriteDict(path: str, obj: dict) -> None:
 
 
 def CopyFiles(files: list[str], target: str, types: list[str]) -> list[str]:
-    """
-    Copy files to target folder
+    """ Copy files to target folder
+
     :param files: files need to copy(no extension)
     :param target: target folder
     :param types: file extensions
@@ -68,8 +68,8 @@ def CopyFiles(files: list[str], target: str, types: list[str]) -> list[str]:
 
 
 def DeleteFolder(folder: str) -> None:
-    """
-    Delete an empty folder
+    """ Delete an empty folder
+
     :param folder: folder path
     :return: None
     """
@@ -78,14 +78,14 @@ def DeleteFolder(folder: str) -> None:
 
 
 def DeleteFiles(files: list[str], types: list[str]) -> None:
-    """
-    Delete files
+    """ Delete files
+
     :param files: files need to delete(no extension)
     :param types: file extensions
     :return: None
     """
     for file in files:
         for file_type in types:
-            delete_file = '%s.%s' % (file, file_type)
+            delete_file = f'{file}.{file_type}'
             logging.debug('deleting file: %s' % delete_file)
             os.remove(delete_file)

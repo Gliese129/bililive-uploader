@@ -40,14 +40,12 @@ class WebhookThread(threading.Thread):
                     r = requests.post(url=url, headers=headers, data=json.dumps(data), timeout=10)
                     code = r.status_code
                     if 200 <= code <= 300:
-                        logging.info('status: success, code: %d' % code)
+                        logging.info(f'status: success, code: {code}')
                         flag = True
                         break
                     else:
-                        logging.error('failed, error code: %d, try time: %d' % (code, i + 1))
+                        logging.error(f'status: failed, error code: {code}, try time: {i + 1}')
                 except Exception as e:
                     logging.error(e)
-                finally:
-                    continue
             if not flag:
                 logging.error('sending webhook failed!')
