@@ -79,10 +79,12 @@ rooms:
     tags:  # 上传所需的tag，英文逗号分割，注意不要加空格
     title: # 视频标题，可以使用模版*1
     description:  # 视频描述
+    channel:  # 频道名称，父子分区用空格分割
     conditions:  # 额外的tag条件，注意判断逻辑为&
     - item: # 字段，例如title*2
       regexp: # 匹配的正则
       tags: # 该条件下额外的tag
+      channel: # 该条件频道名称，父子分区用空格分割
       process: # 当匹配到对应条件时是否处理
 ~~~
 1. title模板:
@@ -100,3 +102,29 @@ rooms:
     5) child_area 子分区
    
 **condition的判定策略为&(and), 即只要有一个不符合就判定不需要处理**
+
+**channel覆盖逻辑: condition channel > live-to-video > basic channel**
+****
+
+## Contribute
+### live-to-video.json
+直播分区与视频分区的映射
+~~~json
+[
+  {
+    "name": "手游",
+    "channel": "游戏 手机游戏"
+  },
+  {
+    "name": "生活",
+    "children": [
+      {
+        "name": "萌宠",
+        "channel": "生活 动物圈"
+      }
+    ]
+  }
+]
+~~~
+以上面的json文本为例，直播父分区为“手游”的录播会被直接归类为“游戏 手机游戏”，
+而“生活”分区因为同级没有channel，不会被映射，但是“生活 萌宠”会被归类为“生活 动物圈”
