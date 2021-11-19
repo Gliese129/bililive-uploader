@@ -45,9 +45,6 @@ recorder:
 server:
   port: # 运行端口
   webhooks: # webhook, 在视频处理完成后触发
-account:
-  username: your account # B站账号
-  password: your password # 密码
 ~~~
 1. 建议将此目录同时作为配置文件放置目录，~~因为这样省事~~
 2. 如果设置为true，即便录播不需要处理也会删除
