@@ -68,6 +68,11 @@ async def session_end(event_data: dict, global_config: GlobalConfig, room_config
             'origin_videos': process.origin_videos,
             'live_info': process.live_info
         })
+    else:
+        # not need to process + delete_flag -> delete files
+        if global_config.delete_flag:
+            logging.info('deleting origin videos by global config...')
+            DeleteFiles(files=process.origin_videos, types=['flv', 'xml'])
 
 
 async def video_upload(global_config: GlobalConfig, access_key: dict, video_info: dict,
