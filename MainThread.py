@@ -89,7 +89,8 @@ async def video_upload(global_config: GlobalConfig, access_key: dict, video_info
     result = await uploader.upload()
     if result:
         # successfully upload -> delete files
-        dir_path = os.path.join(global_config.process_dir, video_info.get('session_id'))
+        live_info: LiveInfo = video_info['live_info']
+        dir_path = os.path.join(global_config.process_dir, live_info.session_id)
         logging.info(f'deleting proceed videos in folder {dir_path}...')
         DeleteFolder(dir_path)
         if global_config.delete_flag:
