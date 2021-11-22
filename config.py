@@ -1,3 +1,4 @@
+import logging
 import os
 import re
 from datetime import datetime
@@ -114,8 +115,13 @@ class Room:
         """
         conditions = []
         for condition in self.conditions:
-            if re.search(pattern=condition.regexp, string=live_info.__getattribute__(condition.item)):
-                conditions.append(condition)
+            try:
+                if re.search(pattern=condition.regexp, string=live_info.__getattribute__(condition.item)):
+                    conditions.append(condition)
+            except AttributeError as e:
+                logging.error(e)
+            finally:
+                pass
         return conditions
 
     @staticmethod
