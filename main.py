@@ -11,11 +11,13 @@ import sys
 import queue
 from MainThread import video_upload
 from urllib.parse import urlencode
+from flask_executor import Executor
+
+logging.basicConfig(level=logging.DEBUG)
 
 nest_asyncio.apply()
 app = Quart(__name__)
-
-logging.basicConfig(level=logging.DEBUG)
+executor = Executor(app)
 upload_queue = queue.Queue()
 
 
@@ -44,7 +46,7 @@ async def processor():
             'room_id': room_id
         }
     thread = ProcessThread(name=str(f'process {room_id}'), event_type=event_type, data=data, upload_queue=upload_queue)
-    thread.run()
+    executor.submit(thread.run())
     return Response(response='<h3>request received, now processing videos</h3>', status=200)
 
 

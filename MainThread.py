@@ -101,7 +101,7 @@ async def video_upload(global_config: GlobalConfig, access_key: dict, video_info
         upload_queue.put(video_info)
 
 
-class ProcessThread (threading.Thread):
+class ProcessThread:
     """ 处理线程
 
     Fields:
@@ -109,12 +109,13 @@ class ProcessThread (threading.Thread):
         data: 传输的数据
         upload_queue: 上传视频队列
     """
+    name: str
     event_type: str
     data: dict
     upload_queue: queue.Queue
 
     def __init__(self, upload_queue: queue.Queue, name: str = None, event_type: str = None, data: dict = None):
-        threading.Thread.__init__(self, name=name)
+        self.name = name
         self.event_type = event_type
         self.data = {} if data is None else data
         self.upload_queue = upload_queue
