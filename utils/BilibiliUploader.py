@@ -161,5 +161,8 @@ class Uploader:
             success = True
         except Exception as e:
             logging.error(e)
+            if self.channel is None:
+                logging.error('this exception is caused by improper channel, please check if the channel is'
+                              'properly settled')
         finally:
             return success

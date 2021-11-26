@@ -1,7 +1,9 @@
-# -*- coding: utf-8 -*-
+# -*- coding : utf-8 -*-
+# coding: utf-8
+import asyncio
 import urllib
 
-from config import GlobalConfig, RoomConfig, LiveInfo
+from config import GlobalConfig, RoomConfig
 from quart import Quart, request, Response
 from MainThread import ProcessThread
 import logging
@@ -9,22 +11,23 @@ import nest_asyncio
 import getopt
 import sys
 import queue
-from MainThread import video_upload
 from urllib.parse import urlencode
-from flask_executor import Executor
+from concurrent.futures import ThreadPoolExecutor
 
 logging.basicConfig(level=logging.DEBUG)
 
 nest_asyncio.apply()
 app = Quart(__name__)
-executor = Executor(app)
+process_executor = ThreadPoolExecutor(thread_name_prefix='process')
+upload_executor = ThreadPoolExecutor(max_workers=5, thread_name_prefix='upload')
 upload_queue = queue.Queue()
+upload_loop = asyncio.new_event_loop()
 
 
 @app.route('/video-process', methods=['POST'])
 async def processor():
     room_config = RoomConfig(config_path)
-    json_request = await request.json
+    json_request = await request.get_json()
     event_type = json_request['EventType']
     event_data = json_request['EventData']
     room_id = event_data['RoomId']
@@ -46,7 +49,7 @@ async def processor():
             'room_id': room_id
         }
     thread = ProcessThread(name=str(f'process {room_id}'), event_type=event_type, data=data, upload_queue=upload_queue)
-    executor.submit(thread.run())
+    process_executor.submit(thread.run())
     return Response(response='<h3>request received, now processing videos</h3>', status=200)
 
 
@@ -70,7 +73,9 @@ async def uploader():
             'video_info': video_info,
             'global_config': global_config
         }
-        await video_upload(upload_queue=upload_queue, **data)
+        thread = ProcessThread(name=str(f'upload {video_info["live_info"].room_id}'), event_type='RecordUploading',
+                               data=data, upload_queue=upload_queue, client_loop=upload_loop)
+        upload_executor.submit(thread.run())
     return Response(response='<h3>request received, now uploading videos</h3>', status=200)
 
 

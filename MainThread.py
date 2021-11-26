@@ -2,7 +2,6 @@ from datetime import datetime
 import logging
 import os
 import queue
-import threading
 import asyncio
 from utils.BilibiliUploader import Uploader
 from utils.VideoProcessor import Processor
@@ -113,16 +112,18 @@ class ProcessThread:
     event_type: str
     data: dict
     upload_queue: queue.Queue
+    client_loop: asyncio.AbstractEventLoop
 
-    def __init__(self, upload_queue: queue.Queue, name: str = None, event_type: str = None, data: dict = None):
+    def __init__(self, upload_queue: queue.Queue, name: str = None, event_type: str = None, data: dict = None,
+                 client_loop: asyncio.AbstractEventLoop = None) -> None:
         self.name = name
         self.event_type = event_type
         self.data = {} if data is None else data
         self.upload_queue = upload_queue
+        self.client_loop = client_loop if client_loop is not None else asyncio.new_event_loop()
 
-    def run(self) -> None:
+    def run(self):
         logging.info(f'starting thread: {self.name}...')
-        asyncio.set_event_loop(asyncio.new_event_loop())
         if self.event_type == 'SessionStarted':
             logging.info('received webhook: session started')
             session_start(**self.data)
@@ -132,6 +133,7 @@ class ProcessThread:
         elif self.event_type == 'SessionEnded':
             logging.info('received webhook: session ended')
             asyncio.run(session_end(upload_queue=self.upload_queue, **self.data))
-        elif self.event_type == 'FileUploading':
-            logging.info('received request: upload')
+        elif self.event_type == 'RecordUploading':
+            logging.info('received request: record upload')
+            asyncio.set_event_loop(self.client_loop)
             asyncio.run(video_upload(upload_queue=self.upload_queue, **self.data))

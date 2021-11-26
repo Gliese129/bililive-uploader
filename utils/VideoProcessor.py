@@ -119,8 +119,7 @@ class Processor:
             command += f'{exe_path} -o "{record}.ass" -i "{record}.xml" -d 50 -S 55 --ignore-warnings\n'
         logging.debug('(danmaku factory) command: %s' % command)
         # run shell command
-        thread = subprocess.Popen(args=command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                  encoding='utf-8')
+        thread = subprocess.Popen(args=command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdoutdata, stderrdata = thread.communicate(input=None)
         logging.debug('std out data: %s\nstd err data: %s' % (stdoutdata, stderrdata))
         # check if there are xml files without appropriate ass files
@@ -153,8 +152,7 @@ class Processor:
                 command += f'{exe_path} -i "{record}.flv" -c copy "{output}"\n'
         logging.debug('(ffmpeg) command: %s' % command)
         # run shell command
-        thread = subprocess.Popen(args=command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE,
-                                  encoding='utf-8')
+        thread = subprocess.Popen(args=command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdoutdata, stderrdata = thread.communicate(input=None)
         logging.debug('std out data: %s\nstd err data: %s' % (stdoutdata, stderrdata))
         return results
