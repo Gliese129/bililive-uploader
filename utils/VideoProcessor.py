@@ -60,6 +60,30 @@ class Processor:
         room.append(file_path)
         FileUtils.WriteDict(path=video_cache, obj=rooms)
 
+    @staticmethod
+    async def run_shell(command: str, prefix: str) -> (str, str):
+        """ 执行shell命令
+
+        :param command: 命令
+        :param prefix: 前缀(用于表示是调用哪个的命令)
+        :return: stdoutdata或者stderrdata
+        """
+        logging.debug(f'({prefix}) command: {command}')
+        process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stdoutdata, stderrdata = process.communicate(input=None)
+        try:
+            stdoutdata = stdoutdata.decode('utf-8')
+            stderrdata = stderrdata.decode('utf-8')
+        except UnicodeError as e:
+            stdoutdata = stdoutdata.decode()
+            stderrdata = stderrdata.decode()
+        finally:
+            if stdoutdata:
+                logging.debug(f'({prefix}) output: {stdoutdata}')
+            if stderrdata:
+                logging.debug(f'({prefix}) error: {stderrdata}')
+            return stdoutdata, stderrdata
+
     def live_end(self) -> None:
         """ 直播结束
 
@@ -70,9 +94,9 @@ class Processor:
         # 清空
         rooms[str(self.live_info.room_id)] = []
         FileUtils.WriteDict(path=video_cache, obj=rooms)
-        # 将录播文件的相对目录转为绝对目录
-        for i in range(len(self.origin_videos)):
-            self.origin_videos[i] = os.path.join(self.recorder_path, self.origin_videos[i])
+        # 将录播文件的相对目录转为绝对目录, 并且过滤不存在的视频
+        self.origin_videos = [os.path.join(self.recorder_path, video) for video in self.origin_videos if
+                              os.path.exists(os.path.join(self.recorder_path, video + '.flv'))]
 
     def check_if_need_process(self, configs: RoomConfig) -> bool:
         """ 检查是否需要处理
@@ -80,6 +104,10 @@ class Processor:
         :param configs: room-config.yml数据
         :return: 是否需要处理
         """
+        # 视频列表为空，不需要处理
+        if len(self.origin_videos) == 0:
+            logging.info(f'room {self.live_info.room_id} does not need processing because it has no videos')
+            return False
         # 长号短号均需要匹配
         self.config = configs.get_room_by_id(room_id=self.live_info.room_id, short_id=self.live_info.short_id)
         if self.config is None:  # 直播间号码不匹配
@@ -119,9 +147,7 @@ class Processor:
             command += f'{exe_path} -o "{record}.ass" -i "{record}.xml" -d 50 -S 55 --ignore-warnings\n'
         logging.debug('(danmaku factory) command: %s' % command)
         # run shell command
-        thread = subprocess.Popen(args=command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdoutdata, stderrdata = thread.communicate(input=None)
-        logging.debug('std out data: %s\nstd err data: %s' % (stdoutdata, stderrdata))
+        await self.run_shell(command=command, prefix='danmaku factory')
         # check if there are xml files without appropriate ass files
         for record in self.process_videos:
             if not os.path.exists(f'{record}.ass'):
@@ -146,13 +172,11 @@ class Processor:
             results.append(output)
             if os.path.exists(f'{record}.ass'):
                 # ass file exists -> use combine command
-                command += f'{exe_path} -i "{record}.flv" -vf subtitles="{record}.ass" -vcodec libx264 "{output}"\n'
+                ass_file = record.replace("\\", "/").replace(":", "\\:") + '.ass'
+                command += f'{exe_path} -i "{record}.flv" -vf "subtitles=\'{ass_file}\'" -vcodec libx264 "{output}"\n'
             else:
                 # ass file does not exist -> use copy command
                 command += f'{exe_path} -i "{record}.flv" -c copy "{output}"\n'
-        logging.debug('(ffmpeg) command: %s' % command)
         # run shell command
-        thread = subprocess.Popen(args=command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdoutdata, stderrdata = thread.communicate(input=None)
-        logging.debug('std out data: %s\nstd err data: %s' % (stdoutdata, stderrdata))
+        await self.run_shell(command=command, prefix='ffmpeg')
         return results

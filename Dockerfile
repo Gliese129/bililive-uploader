@@ -27,7 +27,8 @@ RUN apt-get install yasm -y && \
     apt-get install nasm -y
 # 安装libx264, libass, libfreetype, fontconfig, fribidis, libavformat, libvcodec, libavfilter
 RUN apt-get install libx264-dev libass-dev libfreetype6-dev fontconfig libfribidi-dev libavformat-dev libavcodec-dev libavfilter-dev  -y
-
+# 安装微软雅黑
+COPY ./resources/msyh.ttf /usr/share/fonts/msyh.ttf
 # 安装ffmpeg
 RUN git clone https://git.ffmpeg.org/ffmpeg.git ffmpeg && \
     cd ffmpeg && \

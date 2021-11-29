@@ -13,13 +13,12 @@ import sys
 import queue
 from urllib.parse import urlencode
 from concurrent.futures import ThreadPoolExecutor
+from multiprocessing import Pool
 
 logging.basicConfig(level=logging.DEBUG)
 
 nest_asyncio.apply()
 app = Quart(__name__)
-process_executor = ThreadPoolExecutor(thread_name_prefix='process')
-upload_executor = ThreadPoolExecutor(max_workers=5, thread_name_prefix='upload')
 upload_queue = queue.Queue()
 upload_loop = asyncio.new_event_loop()
 
@@ -49,7 +48,7 @@ async def processor():
             'room_id': room_id
         }
     thread = ProcessThread(name=str(f'process {room_id}'), event_type=event_type, data=data, upload_queue=upload_queue)
-    process_executor.submit(thread.run())
+    process_executor.apply_async(thread.run())
     return Response(response='<h3>request received, now processing videos</h3>', status=200)
 
 
@@ -92,4 +91,6 @@ if __name__ == '__main__':
             logging.info('set config path: %s' % config_path)
     global_config = GlobalConfig(config_path)
     logging.info('application run at port: %d' % global_config.port)
+    process_executor = Pool(4)
+    upload_executor = ThreadPoolExecutor(max_workers=5, thread_name_prefix='upload')
     app.run(host='0.0.0.0', port=global_config.port)
