@@ -14,6 +14,7 @@ colorama==0.4.4
 h11==0.12.0
 h2==4.0.0
 hpack==4.0.0
+httptools==0.3.0
 Hypercorn==0.11.2
 hyperframe==6.0.1
 idna==3.2
@@ -29,6 +30,8 @@ PyYAML==5.4.1
 Quart==0.15.1
 requests==2.26.0
 rsa==4.7.2
+sanic==21.9.3
+sanic-routing==0.7.2
 soupsieve==2.2.1
 toml==0.10.2
 typing-extensions==3.10.0.2

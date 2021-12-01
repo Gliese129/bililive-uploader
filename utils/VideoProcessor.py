@@ -70,7 +70,7 @@ class Processor:
         """
         logging.debug(f'({prefix}) command: {command}')
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdoutdata, stderrdata = process.communicate(input=None)
+        stdoutdata, stderrdata = process.communicate(input=b'n')
         try:
             stdoutdata = stdoutdata.decode('utf-8')
             stderrdata = stderrdata.decode('utf-8')
@@ -78,8 +78,6 @@ class Processor:
             stdoutdata = stdoutdata.decode()
             stderrdata = stderrdata.decode()
         finally:
-            if stdoutdata:
-                logging.debug(f'({prefix}) output: {stdoutdata}')
             if stderrdata:
                 logging.debug(f'({prefix}) error: {stderrdata}')
             return stdoutdata, stderrdata
