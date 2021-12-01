@@ -127,6 +127,8 @@ class Processor:
         """
         # copy files to process dir
         target_dir = os.path.join(self.process_path, self.live_info.session_id)
+        if os.path.exists(target_dir):
+            raise FileExistsError(f'{target_dir} already exists')
         logging.info(f'moving files to dictionary {target_dir}')
         self.process_videos = FileUtils.CopyFiles(files=self.origin_videos, target=target_dir, types=['flv', 'xml'])
 
@@ -143,7 +145,6 @@ class Processor:
         command = ''
         for record in self.process_videos:
             command += f'{exe_path} -o "{record}.ass" -i "{record}.xml" -d 50 -S 55 --ignore-warnings\n'
-        logging.debug('(danmaku factory) command: %s' % command)
         # run shell command
         await self.run_shell(command=command, prefix='danmaku factory')
         # check if there are xml files without appropriate ass files

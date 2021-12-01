@@ -27,7 +27,6 @@ nest-asyncio==1.5.1
 priority==2.0.0
 pyasn1==0.4.8
 PyYAML==5.4.1
-Quart==0.15.1
 requests==2.26.0
 rsa==4.7.2
 sanic==21.9.3

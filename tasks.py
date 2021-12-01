@@ -45,7 +45,11 @@ async def session_end(event_data: dict, global_config: GlobalConfig, room_config
     # check if the room need to be processed
     if process.check_if_need_process(configs=room_config):
         logging.info('processing...')
-        process.prepare()
+        try:
+            process.prepare()
+        except FileExistsError as e:
+            logging.warning(e)
+            return
         logging.info('converting danmaku files...')
         await process.make_damaku()
         logging.info('mixing damaku into videos...')
