@@ -65,6 +65,8 @@ class Condition:
         if data.get('channel') is not None:
             channels = data['channel'].split('')
             self.channel = (channels[0], channels[1]) if len(channels) == 2 else None
+        else:
+            self.channel = None
 
 
 class LiveInfo:

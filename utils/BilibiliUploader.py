@@ -76,7 +76,10 @@ class Uploader:
         conditions = self.room_config.list_proper_conditions(live_info=self.live_info)
         for condition in conditions:
             self.video_info.tags.extend(condition.tags)
-            self.video_info.channel = condition.channel
+            if condition.channel is not None:
+                self.video_info.channel = condition.channel
+        if self.video_info.channel is None:
+            raise Exception('channel not set')
 
     @staticmethod
     def set_pages(videos: list[str]) -> list[video_uploader.VideoUploaderPage]:
@@ -126,8 +129,8 @@ class Uploader:
         self.video_info.title = self.set_module(module_string=self.video_info.title)
         self.video_info.description = self.set_module(module_string=self.video_info.description)
         self.video_info.dynamic = self.set_module(module_string=self.video_info.dynamic)
-        self.set_tags_and_channel()
         try:
+            self.set_tags_and_channel()
             tid = self.fetch_channel(parent_area=self.video_info.channel[0], child_area=self.video_info.channel[1])
             meta = {
                 'act_reserve_create': 0,

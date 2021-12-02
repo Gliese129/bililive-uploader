@@ -70,7 +70,7 @@ class Processor:
         """
         logging.debug(f'({prefix}) command: {command}')
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        stdoutdata, stderrdata = process.communicate(input=b'n')
+        stdoutdata, stderrdata = process.communicate(input=b'N')
         try:
             stdoutdata = stdoutdata.decode('utf-8')
             stderrdata = stderrdata.decode('utf-8')
