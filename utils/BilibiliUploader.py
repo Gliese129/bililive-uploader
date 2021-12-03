@@ -1,5 +1,7 @@
 # -*- coding: utf-8 -*-
 import logging
+import os
+
 from bilibili_api import video_uploader
 from utils import FileUtils
 from config import Room, LiveInfo, VideoInfo
@@ -79,7 +81,7 @@ class Uploader:
             if condition.channel is not None:
                 self.video_info.channel = condition.channel
         if self.video_info.channel is None:
-            raise Exception('channel not set')
+            raise Exception('channel not set, please check config')
 
     @staticmethod
     def set_pages(videos: list[str]) -> list[video_uploader.VideoUploaderPage]:
@@ -91,14 +93,16 @@ class Uploader:
         pages = []
         index = 1
         for video in videos:
-            page_info = {
-                'path': video,
-                'title': f'part{index}',
-                'description': ''
-            }
-            page = video_uploader.VideoUploaderPage(**page_info)
-            pages.append(page)
-            index += 1
+            # make sure the video exists and size is not 0
+            if os.path.exists(video) and os.path.getsize(video) > 0:
+                page_info = {
+                    'path': video,
+                    'title': f'part{index}',
+                    'description': ''
+                }
+                page = video_uploader.VideoUploaderPage(**page_info)
+                pages.append(page)
+                index += 1
         return pages
 
     @staticmethod
@@ -125,6 +129,7 @@ class Uploader:
 
         :return: 是否上传成功
         """
+        delete_flag = False
         success = False
         self.video_info.title = self.set_module(module_string=self.video_info.title)
         self.video_info.description = self.set_module(module_string=self.video_info.description)
@@ -154,18 +159,17 @@ class Uploader:
                 'up_selection_reply': False
             }
             pages = self.set_pages(videos=self.videos)
-            for page in pages:
-                uploader = video_uploader.VideoUploader(pages=[page], meta=meta, credential=self.credential)
-                logging.info('uploading...')
-                logging.debug('file info:\ntitle: %s\ntid: %d\ntags: %s' %
-                              (self.video_info.title, tid, self.video_info.get_tags()))
-                ids = await uploader.start()
-                logging.info('uploading finished, bvid=%s, aid=%s' % (ids['bvid'], ids['aid']))
+            if len(pages) == 0:
+                delete_flag = True
+                raise FileNotFoundError('no video to upload')
+            uploader = video_uploader.VideoUploader(pages=pages, meta=meta, credential=self.credential)
+            logging.info('uploading...')
+            logging.debug('file info:\ntitle: %s\ntid: %d\ntags: %s' %
+                          (self.video_info.title, tid, self.video_info.get_tags()))
+            ids = await uploader.start()
+            logging.info('uploading finished, bvid=%s, aid=%s' % (ids['bvid'], ids['aid']))
             success = True
         except Exception as e:
             logging.error(e)
-            if self.channel is None:
-                logging.error('this exception is caused by improper channel, please check if the channel is'
-                              'properly settled')
         finally:
-            return success
+            return success or delete_flag
