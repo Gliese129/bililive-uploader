@@ -1,3 +1,5 @@
+import asyncio
+import threading
 from datetime import datetime
 import logging
 import os
@@ -32,7 +34,7 @@ def file_open(room_id: int, file_path: str) -> None:
     Processor.file_open(room_id=room_id, file_path=file_path)
 
 
-async def session_end(event_data: dict, global_config: GlobalConfig, room_config: RoomConfig) -> None:
+def session_end(event_data: dict, global_config: GlobalConfig, room_config: RoomConfig) -> None:
     """ 直播会话结束
 
     :param event_data: 录播姬webhook发送的event_data
@@ -51,9 +53,9 @@ async def session_end(event_data: dict, global_config: GlobalConfig, room_config
             logging.warning(e)
             return
         logging.info('converting danmaku files...')
-        await process.make_damaku()
+        asyncio.run(process.make_damaku())
         logging.info('mixing damaku into videos...')
-        result_videos = await process.composite()
+        result_videos = asyncio.run(process.composite())
         logging.info('successfully proceed videos')
         # starting webhook thread
         for url in global_config.webhooks:
@@ -145,7 +147,9 @@ async def dispatch_task(taskname: str, data: dict):
     elif taskname == 'file-open':
         file_open(**data)
     elif taskname == 'session-end':
-        await session_end(**data)
+        thread = threading.Thread(target=session_end, kwargs=data)
+        thread.start()
+        thread.join(1)
     elif taskname == 'video-upload':
         await video_upload(**data)
     elif taskname == 'send-webhook':

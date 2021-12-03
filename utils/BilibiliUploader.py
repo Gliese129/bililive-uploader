@@ -161,7 +161,7 @@ class Uploader:
             pages = self.set_pages(videos=self.videos)
             if len(pages) == 0:
                 delete_flag = True
-                raise FileNotFoundError('no video to upload')
+                raise FileNotFoundError('no videos to upload')
             uploader = video_uploader.VideoUploader(pages=pages, meta=meta, credential=self.credential)
             logging.info('uploading...')
             logging.debug('file info:\ntitle: %s\ntid: %d\ntags: %s' %
