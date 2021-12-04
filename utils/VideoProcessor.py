@@ -3,7 +3,7 @@ import datetime
 import os
 import subprocess
 from utils import FileUtils
-from config import Room, GlobalConfig, RoomConfig, LiveInfo
+from entity import Room, GlobalConfig, RoomConfig, LiveInfo
 import logging
 
 video_cache = './cache/videos.json'
@@ -68,7 +68,7 @@ class Processor:
         :param prefix: 前缀(用于表示是调用哪个的命令)
         :return: stdoutdata或者stderrdata
         """
-        logging.debug(f'({prefix}) command: {command}')
+        logging.debug(f'{prefix} command: {command}')
         process = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
         stdoutdata, stderrdata = process.communicate(input=b'N')
         try:
@@ -78,8 +78,6 @@ class Processor:
             stdoutdata = stdoutdata.decode()
             stderrdata = stderrdata.decode()
         finally:
-            if stderrdata:
-                logging.debug(f'({prefix}) error: {stderrdata}')
             return stdoutdata, stderrdata
 
     def live_end(self) -> None:
@@ -129,7 +127,7 @@ class Processor:
         target_dir = os.path.join(self.process_path, self.live_info.session_id)
         if os.path.exists(target_dir):
             raise FileExistsError(f'{target_dir} already exists')
-        logging.info(f'moving files to dictionary {target_dir}')
+        logging.info(f'({self.live_info.room_id}) moving files to dictionary {target_dir}')
         self.process_videos = FileUtils.CopyFiles(files=self.origin_videos, target=target_dir, types=['flv', 'xml'])
 
     async def make_damaku(self) -> None:

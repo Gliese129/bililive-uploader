@@ -4,7 +4,7 @@ import os
 
 from bilibili_api import video_uploader
 from utils import FileUtils
-from config import Room, LiveInfo, VideoInfo
+from entity import Room, LiveInfo, VideoInfo
 from utils.FileUtils import ReadJson
 
 channel_data = './resources/channel.json'

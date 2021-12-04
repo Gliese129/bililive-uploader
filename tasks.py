@@ -7,7 +7,7 @@ from sanic import Sanic
 from utils.BilibiliUploader import Uploader
 from utils.VideoProcessor import Processor
 from utils.FileUtils import DeleteFolder, DeleteFiles
-from config import RoomConfig, GlobalConfig, LiveInfo
+from entity import RoomConfig, GlobalConfig, LiveInfo
 
 app = Sanic.get_app()
 
@@ -19,7 +19,7 @@ def session_start(room_id: int) -> None:
     :return:
     """
     start_time = datetime.now()
-    logging.debug(f'room: {room_id}  live start at {start_time.strftime("%Y-%m-%d %H:%M:%S")}')
+    logging.debug(f'({room_id}) live session started at {start_time.strftime("%Y-%m-%d %H:%M:%S")}')
     Processor.live_start(room_id=room_id, start_time=start_time)
 
 
@@ -30,7 +30,7 @@ def file_open(room_id: int, file_path: str) -> None:
     :param file_path: 录播文件路径
     :return:
     """
-    logging.debug(f'room: {room_id}  file: {file_path}')
+    logging.debug(f'({room_id}) file path: {file_path}')
     Processor.file_open(room_id=room_id, file_path=file_path)
 
 
@@ -46,26 +46,27 @@ def session_end(event_data: dict, global_config: GlobalConfig, room_config: Room
     process.live_end()
     # check if the room need to be processed
     if process.check_if_need_process(configs=room_config):
-        logging.info('processing...')
+        logging.info(f'({process.live_info.room_id}) processing...')
         try:
             process.prepare()
         except FileExistsError as e:
             logging.warning(e)
             return
-        logging.info('converting danmaku files...')
+        logging.info(f'({process.live_info.room_id}) converting danmaku files...')
         asyncio.run(process.make_damaku())
-        logging.info('mixing damaku into videos...')
+        logging.info(f'({process.live_info.room_id}) mixing damaku into videos...')
         result_videos = asyncio.run(process.composite())
-        logging.info('successfully proceed videos')
+        logging.info(f'({process.live_info.room_id}) successfully proceed videos')
         # starting webhook thread
         for url in global_config.webhooks:
-            app.add_task(dispatch_task(f'custom.webhook-send.{url}', data={
+            app.add_task(dispatch_task('send-webhook', data={
+                'url': url,
                 'event_data': event_data,
                 'proceed_videos': result_videos,
                 'work_dic': os.path.join(global_config.process_dir, process.live_info.session_id)
             }))
         # add video to upload queue
-        logging.info('adding videos to upload waiting list...')
+        logging.info(f'({process.live_info.room_id}) adding videos to upload waiting list...')
         upload_queue = app.ctx.upload_queue
         upload_queue.put({
             'room_config': process.config,
@@ -76,7 +77,7 @@ def session_end(event_data: dict, global_config: GlobalConfig, room_config: Room
     else:
         # not need to process + delete_flag -> delete files
         if global_config.delete_flag:
-            logging.info('deleting origin videos by global config...')
+            logging.info(f'({process.live_info.room_id}) deleting origin videos by global config...')
             DeleteFiles(files=process.origin_videos, types=['flv', 'xml'])
 
 
@@ -94,10 +95,10 @@ async def video_upload(global_config: GlobalConfig, access_key: dict, video_info
         # successfully upload or no proper files -> delete files
         live_info: LiveInfo = video_info['live_info']
         dir_path = os.path.join(global_config.process_dir, live_info.session_id)
-        logging.info(f'deleting proceed videos in folder {dir_path}...')
+        logging.info(f'({live_info.room_id}) deleting proceed videos in folder {dir_path}...')
         DeleteFolder(dir_path)
         if global_config.delete_flag:
-            logging.info('deleting origin videos by global config...')
+            logging.info(f'({live_info.room_id}) deleting origin videos by global config...')
             DeleteFiles(files=video_info.get('origin_videos'), types=['flv', 'xml'])
     else:
         # failed upload -> add to upload queue again
@@ -106,7 +107,7 @@ async def video_upload(global_config: GlobalConfig, access_key: dict, video_info
 
 
 async def send_webhook(url: str, event_data: dict, videos: list[str], work_dir: str):
-    logging.info(f'Send webhook to {url}')
+    logging.info(f'send webhook to {url}')
     request_body = {
         'EventType': 'VideoProceed',
         'TimeStamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
@@ -149,7 +150,7 @@ async def dispatch_task(taskname: str, data: dict):
     elif taskname == 'session-end':
         thread = threading.Thread(target=session_end, kwargs=data)
         thread.start()
-        thread.join(1)
+        thread.join(10)
     elif taskname == 'video-upload':
         await video_upload(**data)
     elif taskname == 'send-webhook':
