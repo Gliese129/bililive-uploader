@@ -3,7 +3,7 @@
 ### 运行程序
 #### python 启动
 ~~~ commandline
-python main.py -c ${your config path}
+python server.py -c ${your config path}
 ~~~
 
 #### docker 启动
@@ -41,6 +41,7 @@ recorder:
   recorder-dir:  # 录播姬工作目录
   process-dir:  # 输出位置*1
   delete-after-upload:  # 是否在上传完成后删除*2
+  workers:  # sanic workers
   is-docekr:  # 是否在docker中运行
 server:
   port: # 运行端口

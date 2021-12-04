@@ -84,4 +84,4 @@ if __name__ == '__main__':
             config_path = value
     global_config = GlobalConfig(config_path)
     logging.info('application run at port: %d' % global_config.port)
-    app.run(host='0.0.0.0', port=global_config.port, workers=global_config.workers)
+    app.run(host='0.0.0.0', port=global_config.port, workers=global_config.workers, debug=False, access_log=False)
