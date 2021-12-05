@@ -149,7 +149,7 @@ class Uploader:
                 'origin_state': 0,
                 'subtitles': {
                     "lan": '',
-                    'open': 1
+                    'open': 0
                     },
                 'tag': self.video_info.get_tags(),
                 'tid': tid,

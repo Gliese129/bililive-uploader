@@ -21,12 +21,13 @@ class GlobalConfig:
     delete_flag: bool
     port: int
     webhooks: list[str]
-    workers: int
     isDocker: bool
+    workers: int
 
     def __init__(self, folder_path: str):
         config = FileUtils.YmlReader(os.path.join(folder_path, 'global-config.yml'))
         self.isDocker = config['recorder']['is-docker'] if config['recorder'].get('is-docker') is not None else False
+        self.workers = config['recorder']['workers'] if config['recorder'].get('workers') is not None else 32
         if self.isDocker:
             self.recorder_dir = '/recorder'
             self.process_dir = '/process'
@@ -38,7 +39,6 @@ class GlobalConfig:
         self.delete_flag = config['recorder']['delete-after-upload'] \
             if config['recorder'].get('delete-after-upload') is not None else False
         self.webhooks = config['server']['webhooks'] if config['server'].get('webhooks') is not None else []
-        self.workers = config['recorder']['workers'] if config['server'].get('workers') is not None else 1
 
 
 class Condition:

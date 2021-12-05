@@ -1,4 +1,4 @@
-###将B站录播姬录制的录播处理后上传到B站
+### 将B站录播姬录制的录播处理后上传到B站
 ## 使用文档
 ### 运行程序
 #### python 启动
@@ -23,11 +23,12 @@ server:
    port: 8866
 ~~~
 
-**注意:确保该目录下存在 global-config.yml 和 room-config.yml**
-**请在B站录播姬webhook v2 中加上[http://${url}:${port}//video-process]()**
-#### 上传视频
+**请确保该目录下存在 global-config.yml 和 room-config.yml**
 
-由于B站给所有登录api加上了验证码，所以处理完的录播将会放入上传队列等待上传，
+**请在B站录播姬webhook v2 中加上[http://${your host}//video-process]()**
+### 上传视频
+
+处理完的录播将会放入上传队列等待上传，
 此时需要向[http://{your host}/video-upload]()发送get请求，请求中需要
 带上sessdata,bili_jct,buvid3这三个参数。上传失败的视频会重新放入队列中，
 等待下次上传。
@@ -41,14 +42,15 @@ recorder:
   recorder-dir:  # 录播姬工作目录
   process-dir:  # 输出位置*1
   delete-after-upload:  # 是否在上传完成后删除*2
-  workers:  # sanic workers
   is-docekr:  # 是否在docker中运行
+  workers:  # 同时进行的处理视频任务数量*3
 server:
   port: # 运行端口
   webhooks: # webhook, 在视频处理完成后触发
 ~~~
 1. 建议将此目录同时作为配置文件放置目录，~~因为这样省事~~
 2. 如果设置为true，即便录播不需要处理也会删除
+3. 如果不设置，则默认取CPU核心数和32的最小值;如果设置，则取设置数值和CPU核心数的最小值
 
 webhook内容:
 ~~~ json

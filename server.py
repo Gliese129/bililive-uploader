@@ -1,5 +1,7 @@
 # -*- coding : utf-8 -*-
 # coding: utf-8
+from concurrent.futures import ThreadPoolExecutor
+import multiprocessing
 from entity import GlobalConfig, RoomConfig
 import logging
 import getopt
@@ -84,4 +86,6 @@ if __name__ == '__main__':
             config_path = value
     global_config = GlobalConfig(config_path)
     logging.info('application run at port: %d' % global_config.port)
-    app.run(host='0.0.0.0', port=global_config.port, workers=global_config.workers, debug=False, access_log=False)
+    cpu_count = multiprocessing.cpu_count()
+    app.ctx.process_pool = ThreadPoolExecutor(max_workers=min(cpu_count, global_config.workers))
+    app.run(host='0.0.0.0', port=global_config.port, debug=False, access_log=False)

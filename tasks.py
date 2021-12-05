@@ -148,9 +148,7 @@ async def dispatch_task(taskname: str, data: dict):
     elif taskname == 'file-open':
         file_open(**data)
     elif taskname == 'session-end':
-        thread = threading.Thread(target=session_end, kwargs=data)
-        thread.start()
-        thread.join(10)
+        app.ctx.process_pool.submit(session_end, **data)
     elif taskname == 'video-upload':
         await video_upload(**data)
     elif taskname == 'send-webhook':
