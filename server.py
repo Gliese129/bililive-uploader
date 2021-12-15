@@ -27,18 +27,18 @@ async def processor(request):
     event_data = request_body['EventData']
     room_id = event_data['RoomId']
     if event_type == 'SessionStarted':
-        logging.info(f'({room_id}) received webhook: session started')
+        logging.info(f'[{room_id}] receive webhook: session started')
         app.add_task(dispatch_task('session-start', data={
             'room_id': room_id,
         }))
     elif event_type == 'FileOpening':
-        logging.info(f'({room_id}) received webhook: file opening')
+        logging.info(f'[{room_id}] receive webhook: file opening')
         app.add_task(dispatch_task('file-open', data={
             'room_id': room_id,
             'file_path': event_data['RelativePath'],
         }))
     elif event_type == 'SessionEnded':
-        logging.info(f'({room_id}) received webhook: session ended')
+        logging.info(f'[{room_id}] receive webhook: session ended')
         app.add_task(dispatch_task('session-end', data={
             'event_data': event_data,
             'global_config': global_config,
@@ -51,6 +51,7 @@ async def processor(request):
 async def uploader(request):
     from tasks import dispatch_task
 
+    logging.info('received request: record upload')
     sessdata = request.args.get('sessdata')
     access_key = {
         'sessdata': quote(sessdata),
@@ -65,7 +66,6 @@ async def uploader(request):
     # upload videos in video_queue
     while not video_queue.empty():
         video_info = video_queue.get()
-        logging.info('received request: record upload')
         app.add_task(dispatch_task('video-upload', data={
             'access_key': access_key,
             'video_info': video_info,

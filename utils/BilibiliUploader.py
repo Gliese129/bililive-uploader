@@ -81,7 +81,11 @@ class Uploader:
             if condition.channel is not None:
                 self.video_info.channel = condition.channel
         if self.video_info.channel is None:
-            raise Exception('channel not set, please check config')
+            logging.info(f'[{self.live_info.room_id}] {self.live_info.parent_area}-{self.live_info.child_area} -> ?')
+            raise Exception('can not find channel')
+        logging.debug(f'[{self.live_info.room_id}] '
+                      f'live channel: {self.live_info.parent_area}-{self.live_info.child_area} -> '
+                      f'{self.video_info.channel[0]}-{self.video_info.channel[1]}')
 
     @staticmethod
     def set_pages(videos: list[str]) -> list[video_uploader.VideoUploaderPage]:
@@ -113,7 +117,6 @@ class Uploader:
         :param child_area: 子区域
         :return: 分区id
         """
-        logging.info('fetching channel...')
         channel = FileUtils.ReadJson(path=channel_data)
         tid = 0
         for main_ch in channel:
@@ -121,7 +124,6 @@ class Uploader:
                 for sub_ch in main_ch['sub']:
                     if sub_ch['name'] == child_area:
                         tid = sub_ch['tid']
-        logging.debug('parent area: %s   child area: %s  ->  channel id: %d' % (parent_area, child_area, tid))
         return tid
 
     async def upload(self) -> bool:
@@ -136,6 +138,7 @@ class Uploader:
         self.video_info.dynamic = self.set_module(module_string=self.video_info.dynamic)
         try:
             self.set_tags_and_channel()
+            logging.info(f'[{self.live_info.room_id}] fetching channel...')
             tid = self.fetch_channel(parent_area=self.video_info.channel[0], child_area=self.video_info.channel[1])
             meta = {
                 'act_reserve_create': 0,

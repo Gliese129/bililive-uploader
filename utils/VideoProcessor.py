@@ -176,4 +176,5 @@ class Processor:
                 command += f'{exe_path} -i "{record}.flv" -c copy "{output}"\n'
         # run shell command
         await self.run_shell(command=command, prefix='ffmpeg')
+        logging.info(f'({self.live_info.room_id}) processed {len(results)} videos')
         return results

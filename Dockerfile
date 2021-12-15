@@ -1,7 +1,11 @@
 FROM ubuntu
 MAINTAINER Gliese<3207960592@qq.com>
-# 不设置时区
+
 ENV DEBIAN_FRONTEND=noninteractive
+# 设置UTF-8编码
+ENV LANG=en_US.UTF-8
+# 设置时区为北京时间
+ENV TZ=Asia/Shanghai
 # 更新apt-get,安装wget, yum
 RUN apt-get update -y && \
     apt-get install wget -y
@@ -10,7 +14,6 @@ RUN apt-get install gcc -y && \
     apt-get install make -y
 # 安装git
 RUN apt-get install git -y
-
 # 安装构建Python所需的依赖项
 RUN apt-get install build-essential zlib1g-dev libncurses5-dev libgdbm-dev libnss3-dev libssl-dev libreadline-dev libffi-dev libsqlite3-dev libbz2-dev -y
 # 安装python3.9.8
