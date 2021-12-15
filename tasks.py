@@ -7,7 +7,7 @@ from sanic import Sanic
 from utils.BilibiliUploader import Uploader
 from utils.VideoProcessor import Processor
 from utils.FileUtils import DeleteFolder, DeleteFiles
-from entity import RoomConfig, GlobalConfig, LiveInfo
+from entity import RoomConfig, GlobalConfig, LiveInfo, Room
 
 app = Sanic.get_app()
 
@@ -69,7 +69,6 @@ def session_end(event_data: dict, global_config: GlobalConfig, room_config: Room
         logging.info(f'({process.live_info.room_id}) adding videos to upload waiting list...')
         upload_queue = app.ctx.upload_queue
         upload_queue.put({
-            'room_config': process.config,
             'videos': result_videos,
             'origin_videos': process.origin_videos,
             'live_info': process.live_info
@@ -81,15 +80,16 @@ def session_end(event_data: dict, global_config: GlobalConfig, room_config: Room
             DeleteFiles(files=process.origin_videos, types=['flv', 'xml'])
 
 
-async def video_upload(global_config: GlobalConfig, access_key: dict, video_info: dict) -> None:
+async def video_upload(global_config: GlobalConfig, room_config: Room, access_key: dict, video_info: dict) -> None:
     """ 上传视频
 
     :param global_config: 全局配置
+    :param room_config: 房间配置
     :param video_info: 视频信息
     :param access_key: 密钥
     :return:
     """
-    uploader = Uploader(access_key=access_key, **video_info)
+    uploader = Uploader(access_key=access_key, room_config=room_config, **video_info)
     result = await uploader.upload()
     if result:
         # successfully upload or no proper files -> delete files

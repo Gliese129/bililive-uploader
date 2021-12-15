@@ -4,6 +4,10 @@
     "channel": "游戏 手机游戏"
   },
   {
+    "name": "单机",
+    "channel": "游戏 单机游戏"
+  },
+  {
     "name": "生活",
     "children": [
       {

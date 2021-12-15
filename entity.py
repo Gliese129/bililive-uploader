@@ -153,7 +153,7 @@ class RoomConfig:
         for room in config['rooms']:
             self.rooms.append(Room(room))
 
-    def get_room_by_id(self, room_id: int, short_id: int) -> Room or None:
+    def get_room_by_id(self, room_id: int, short_id: int = None) -> Room or None:
         """ 根据房间id获取房间配置
 
         :param room_id: 房间长号

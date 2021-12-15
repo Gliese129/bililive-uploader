@@ -51,6 +51,7 @@ async def processor(request):
 async def uploader(request):
     from tasks import dispatch_task
 
+    room_config = RoomConfig(config_path)
     logging.info('received request: record upload')
     sessdata = request.args.get('sessdata')
     access_key = {
@@ -69,7 +70,8 @@ async def uploader(request):
         app.add_task(dispatch_task('video-upload', data={
             'access_key': access_key,
             'video_info': video_info,
-            'global_config': global_config
+            'global_config': global_config,
+            'room_config': room_config.get_room_by_id(video_info['live_info']['room_id'])
         }))
     return text('done')
 
