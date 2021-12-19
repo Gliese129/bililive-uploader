@@ -2,7 +2,7 @@
 # coding: utf-8
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
-from entity import GlobalConfig, RoomConfig
+from entity import GlobalConfig, RoomConfig, LiveInfo
 import logging
 import getopt
 import sys
@@ -67,11 +67,12 @@ async def uploader(request):
     # upload videos in video_queue
     while not video_queue.empty():
         video_info = video_queue.get()
+        live_info: LiveInfo = video_info['live_info']
         app.add_task(dispatch_task('video-upload', data={
             'access_key': access_key,
             'video_info': video_info,
             'global_config': global_config,
-            'room_config': room_config.get_room_by_id(video_info['live_info']['room_id'])
+            'room_config': room_config.get_room_by_id(live_info.room_id)
         }))
     return text('done')
 
