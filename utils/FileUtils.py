@@ -55,7 +55,7 @@ def CopyFiles(files: list[str], target: str, types: list[str]) -> list[str]:
     :param files: files need to copy(no extension)
     :param target: target folder
     :param types: file extensions
-    :return: files copied
+    :return: files copied(no extension)
     """
     if not os.path.exists(target):
         os.makedirs(target)

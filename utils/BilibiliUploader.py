@@ -4,7 +4,7 @@ import os
 
 from bilibili_api import video_uploader
 from utils import FileUtils
-from entity import Room, LiveInfo, VideoInfo
+from entity import RoomConfig, LiveInfo, VideoInfo
 from utils.FileUtils import ReadJson
 
 channel_data = './resources/channel.json'
@@ -17,16 +17,26 @@ class Uploader:
     room_id: int
     live_info: LiveInfo
     video_info: VideoInfo
-    room_config: Room
+    room_config: RoomConfig
     channel: (str, str)
 
-    def __init__(self, access_key: dict, room_config: Room, videos: list[str], live_info: LiveInfo, **unused):
+    def __init__(self, access_key: dict, room_config: RoomConfig, videos: list[str], live_info: LiveInfo, **unused):
         self.credential = video_uploader.Credential(**access_key)
         self.videos = videos
         self.video_info = VideoInfo(room_config=room_config)
         self.room_config = room_config
         self.live_info = live_info
         self.room_id = live_info.room_id
+
+    @staticmethod
+    def get_channel(channel: str) -> (str, str):
+        """ 将分区字符串转为元组
+
+        :param channel 分区(父分区和子分区由空格分割)
+        :return: 分区元组
+        """
+        parent_area, child_area = channel.split(' ')
+        return parent_area, child_area
 
     def set_module(self, module_string: str) -> str:
         """ 设置模板
@@ -57,7 +67,7 @@ class Uploader:
             if parent_area.get('name') == self.live_info.parent_area:
                 # 直播父分区可以直接对应频道
                 if parent_area.get('channel') is not None:
-                    channel = Room.get_channel(parent_area.get('channel'))
+                    channel = self.get_channel(parent_area.get('channel'))
                     if channel is not None:
                         self.video_info.channel = channel
                         flag = True
@@ -67,7 +77,7 @@ class Uploader:
                         if child_area.get('name') == self.live_info.child_area:
                             # 子分区可以直接对应频道
                             if child_area.get('channel') is not None:
-                                channel = Room.get_channel(child_area.get('channel'))
+                                channel = self.get_channel(child_area.get('channel'))
                                 if channel is not None:
                                     self.video_info.channel = channel
                                     flag = True

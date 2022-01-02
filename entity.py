@@ -113,6 +113,15 @@ class RoomConfig:
         else:
             self.channel = None
 
+    @classmethod
+    def get_config(cls, folder_path: str, room_id: int, short_id: int = None):
+        configs = FileUtils.YmlReader(os.path.join(folder_path, 'room-config.yml'))
+        for room in configs['rooms']:
+            config = cls(room)
+            if config.id == room_id or config.id == short_id:
+                return room
+        return None
+
     def list_proper_conditions(self, live_info: LiveInfo) -> list[Condition]:
         """ 返回符合条件的额外条件
 

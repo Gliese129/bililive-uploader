@@ -6,11 +6,12 @@ from sanic import Sanic
 from utils.BilibiliUploader import Uploader
 from utils.VideoProcessor import Processor
 from utils.FileUtils import DeleteFolder, DeleteFiles
-from entity import RoomConfig, GlobalConfig, LiveInfo, Room
+from entity import RoomConfig, GlobalConfig, LiveInfo
 
 app = Sanic.get_app()
 
 
+@app.signal('session.start.<room_id:int>')
 def session_start(room_id: int) -> None:
     """ 直播会话开始
 
@@ -22,6 +23,7 @@ def session_start(room_id: int) -> None:
     Processor.live_start(room_id=room_id, start_time=start_time)
 
 
+@app.signal('file.open.<room_id:int>')
 def file_open(room_id: int, file_path: str) -> None:
     """ 录播文件写入
 
@@ -33,41 +35,37 @@ def file_open(room_id: int, file_path: str) -> None:
     Processor.file_open(room_id=room_id, file_path=file_path)
 
 
-def session_end(event_data: dict, room_config: RoomConfig) -> None:
+@app.signal('session.end.<room_id:int>')
+async def session_end(room_id: int, event_data: dict, room_config: RoomConfig) -> None:
     """ 直播会话结束
 
+    :param room_id: 房间id
     :param event_data: 录播姬webhook发送的event_data
     :param room_config: 房间配置
     :return:
     """
     global_config: GlobalConfig = app.ctx.global_config
-    process = Processor(event_data=event_data)
+    process = Processor(event_data=event_data, room_config=room_config)
     process.live_end()
     # check if the room need to be processed
-    if process.check_if_need_process(configs=room_config):
-        logging.info(f'[{process.live_info.room_id}] processing...')
+    if process.check_if_need_process():
+        logging.info(f'[{room_id}] processing...')
         try:
-            process.prepare()
+            await process.prepare()
         except FileExistsError as e:
             logging.warning(e)
             return
-        if not global_config.multipart:
-
-        logging.info(f'[{process.live_info.room_id}] converting danmaku files...')
-        asyncio.run(process.make_damaku())
-        logging.info(f'[{process.live_info.room_id}] mixing damaku into videos...')
+        logging.info(f'[{room_id}] mixing damaku into videos...')
         result_videos = asyncio.run(process.composite())
-        logging.info(f'[{process.live_info.room_id}] successfully proceed videos')
-        # starting webhook thread
+        logging.info(f'[{room_id}] successfully proceed videos')
+        # send webhook
         for url in global_config.webhooks:
-            app.add_task(dispatch_task('send-webhook', data={
-                'url': url,
-                'event_data': event_data,
-                'proceed_videos': result_videos,
-                'work_dic': os.path.join(global_config.process_dir, process.live_info.session_id)
-            }))
+            app.add_task(send_webhook(
+                url=url, event_data=event_data, videos=result_videos,
+                work_dir=os.path.join(global_config.process_dir, process.live_info.session_id)
+            ))
         # add video to upload queue
-        logging.info(f'[{process.live_info.room_id}] adding videos to upload waiting list...')
+        logging.info(f'[{room_id}] adding videos to upload waiting list...')
         upload_queue = app.ctx.upload_queue
         upload_queue.put({
             'videos': result_videos,
@@ -77,13 +75,15 @@ def session_end(event_data: dict, room_config: RoomConfig) -> None:
     else:
         # not need to process + delete_flag -> delete files
         if global_config.delete_flag:
-            logging.info(f'[{process.live_info.room_id}] deleting origin videos by global config...')
+            logging.info(f'[{room_id}] deleting origin videos by global config...')
             DeleteFiles(files=process.origin_videos, types=['flv', 'xml'])
 
 
-async def video_upload(room_config: Room, access_key: dict, video_info: dict) -> None:
+@app.signal('record.upload.<room_id:int>')
+async def video_upload(room_id: int, room_config: RoomConfig, access_key: dict, video_info: dict) -> None:
     """ 上传视频
 
+    :param room_id: 房间id
     :param room_config: 房间配置
     :param video_info: 视频信息
     :param access_key: 密钥
@@ -96,10 +96,10 @@ async def video_upload(room_config: Room, access_key: dict, video_info: dict) ->
         # successfully upload or no proper files -> delete files
         live_info: LiveInfo = video_info['live_info']
         dir_path = os.path.join(global_config.process_dir, live_info.session_id)
-        logging.info(f'[{live_info.room_id}] deleting proceed videos in folder {dir_path}...')
+        logging.info(f'[{room_id}] deleting proceed videos in folder {dir_path}...')
         DeleteFolder(dir_path)
         if global_config.delete_flag:
-            logging.info(f'[{live_info.room_id}] deleting origin videos by global config...')
+            logging.info(f'[{room_id}] deleting origin videos by global config...')
             DeleteFiles(files=video_info.get('origin_videos'), types=['flv', 'xml'])
     else:
         # failed upload -> add to upload queue again
@@ -135,22 +135,3 @@ async def send_webhook(url: str, event_data: dict, videos: list[str], work_dir: 
             finally:
                 if flag:
                     break
-
-
-async def dispatch_task(taskname: str, data: dict):
-    """ 分发任务
-
-    :param taskname: 任务名称
-    :param data: 任务数据
-    :return:
-    """
-    if taskname == 'session-start':
-        session_start(**data)
-    elif taskname == 'file-open':
-        file_open(**data)
-    elif taskname == 'session-end':
-        app.ctx.process_pool.submit(session_end, **data)
-    elif taskname == 'video-upload':
-        await video_upload(**data)
-    elif taskname == 'send-webhook':
-        await send_webhook(**data)

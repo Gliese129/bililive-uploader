@@ -2,11 +2,9 @@
 import datetime
 import os
 import subprocess
-
 from sanic import Sanic
-
 from utils import FileUtils
-from entity import Room, GlobalConfig, RoomConfig, LiveInfo
+from entity import RoomConfig, LiveInfo
 import logging
 
 video_cache = './cache/videos.json'
@@ -18,12 +16,12 @@ class Processor:
     origin_videos: list[str]
     process_videos: list[str]
     live_info: LiveInfo
-    config: Room
+    config: RoomConfig
     recorder_path: str
     process_path: str
     isDocker: bool
 
-    def __init__(self, event_data: dict):
+    def __init__(self, event_data: dict, room_config: RoomConfig):
         global_config = app.ctx.global_config
         self.live_info = LiveInfo(event_data=event_data)
         self.origin_videos = []
@@ -33,6 +31,7 @@ class Processor:
         self.isDocker = global_config.isDocker
         rooms = FileUtils.ReadJson(time_cache)
         self.live_info.start_time = datetime.datetime.fromtimestamp(rooms[str(self.live_info.room_id)])
+        self.config = room_config
 
     @staticmethod
     def live_start(room_id: int, start_time: datetime) -> None:
@@ -79,7 +78,7 @@ class Processor:
         try:
             stdoutdata = stdoutdata.decode('utf-8')
             stderrdata = stderrdata.decode('utf-8')
-        except UnicodeError as e:
+        except UnicodeError:
             stdoutdata = stdoutdata.decode()
             stderrdata = stderrdata.decode()
         finally:
@@ -99,10 +98,9 @@ class Processor:
         self.origin_videos = [os.path.join(self.recorder_path, video) for video in self.origin_videos if
                               os.path.exists(os.path.join(self.recorder_path, video + '.flv'))]
 
-    def check_if_need_process(self, configs: RoomConfig) -> bool:
+    def check_if_need_process(self) -> bool:
         """ 检查是否需要处理
 
-        :param configs: room-config.yml数据
         :return: 是否需要处理
         """
         # 视频列表为空，不需要处理
@@ -110,7 +108,6 @@ class Processor:
             logging.info(f'room {self.live_info.room_id} does not need processing because it has no videos')
             return False
         # 长号短号均需要匹配
-        self.config = configs.get_room_by_id(room_id=self.live_info.room_id, short_id=self.live_info.short_id)
         if self.config is None:  # 直播间号码不匹配
             logging.info(f'room {self.live_info.room_id} does not need processing because it\'s not in the room list')
             return False
@@ -123,9 +120,10 @@ class Processor:
                 return False
         return True
 
-    def prepare(self) -> None:
+    async def prepare(self, multipart: bool = False) -> None:
         """ 准备工作
 
+        :param multipart: 是否多part
         :return:
         """
         # copy files to process dir
@@ -134,8 +132,29 @@ class Processor:
             raise FileExistsError(f'{target_dir} already exists')
         logging.info(f'[{self.live_info.room_id}] moving files to dictionary {target_dir}')
         self.process_videos = FileUtils.CopyFiles(files=self.origin_videos, target=target_dir, types=['flv', 'xml'])
+        if not multipart:
+            # not allow multipart -> combine all videos to record.flv
+            files = ''
+            for video in self.process_videos:
+                files += f"file '{video}.flv'\n"
+            with open(os.path.join(target_dir, 'files.txt'), 'w') as f:
+                if self.isDocker:
+                    exe_path = 'ffmpeg'
+                else:
+                    exe_path = 'resources\\ffmpeg'
+                f.write(files)
+                command = f'{exe_path} -f concat -i files.txt -c copy record.flv'
+                await self.run_shell(command=command, prefix='ffmpeg')
+            # remove files.txt
+            os.remove(os.path.join(target_dir, 'files.txt'))
 
-    async def make_damaku(self) -> None:
+        logging.info(f'[{self.live_info.room_id}] converting danmaku files...')
+        await self.make_damaku(multipart=multipart)
+        if not multipart:
+            # make process_videos only contains record
+            self.process_videos = [os.path.join(target_dir, 'record')]
+
+    async def make_damaku(self, multipart: bool = False) -> None:
         """ 处理弹幕文件
 
         :return:
@@ -146,8 +165,16 @@ class Processor:
             exe_path = 'resources\\DanmakuFactory.exe'
         # set shell command
         command = ''
-        for record in self.process_videos:
-            command += f'{exe_path} -o "{record}.ass" -i "{record}.xml" -d 50 -S 55 --ignore-warnings\n'
+        if multipart:
+            # allow multipart -> convert separately
+            for record in self.process_videos:
+                command += f'{exe_path} -o "{record}.ass" -i "{record}.xml" -d 50 -S 55 --ignore-warnings\n'
+        else:
+            # not allow multipart -> convert together
+            command = f'{exe_path} -o "record.ass" -i '
+            for record in self.process_videos:
+                command += f'"{record}.xml" '
+            command += f'-d 50 -S 55 --ignore-warnings'
         # run shell command
         await self.run_shell(command=command, prefix='danmaku factory')
         # check if there are xml files without appropriate ass files
@@ -175,7 +202,7 @@ class Processor:
             if os.path.exists(f'{record}.ass'):
                 # ass file exists -> use combine command
                 ass_file = record.replace("\\", "/").replace(":", "\\:") + '.ass'
-                command += f'{exe_path} -i "{record}.flv" -vf "subtitles=\'{ass_file}\'" -vcodec libx264 "{output}"\n'
+                command += f'{exe_path} -i "{record}.flv" -vf "subtitles=\'{ass_file}\'" "{output}"\n'
             else:
                 # ass file does not exist -> use copy command
                 command += f'{exe_path} -i "{record}.flv" -c copy "{output}"\n'
