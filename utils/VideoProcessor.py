@@ -2,12 +2,16 @@
 import datetime
 import os
 import subprocess
+
+from sanic import Sanic
+
 from utils import FileUtils
 from entity import Room, GlobalConfig, RoomConfig, LiveInfo
 import logging
 
 video_cache = './cache/videos.json'
 time_cache = './cache/times.json'
+app = Sanic.get_app()
 
 
 class Processor:
@@ -19,7 +23,8 @@ class Processor:
     process_path: str
     isDocker: bool
 
-    def __init__(self, event_data: dict, global_config: GlobalConfig):
+    def __init__(self, event_data: dict):
+        global_config = app.ctx.global_config
         self.live_info = LiveInfo(event_data=event_data)
         self.origin_videos = []
         self.process_videos = []
@@ -127,7 +132,7 @@ class Processor:
         target_dir = os.path.join(self.process_path, self.live_info.session_id)
         if os.path.exists(target_dir):
             raise FileExistsError(f'{target_dir} already exists')
-        logging.info(f'({self.live_info.room_id}) moving files to dictionary {target_dir}')
+        logging.info(f'[{self.live_info.room_id}] moving files to dictionary {target_dir}')
         self.process_videos = FileUtils.CopyFiles(files=self.origin_videos, target=target_dir, types=['flv', 'xml'])
 
     async def make_damaku(self) -> None:
@@ -176,5 +181,5 @@ class Processor:
                 command += f'{exe_path} -i "{record}.flv" -c copy "{output}"\n'
         # run shell command
         await self.run_shell(command=command, prefix='ffmpeg')
-        logging.info(f'({self.live_info.room_id}) processed {len(results)} videos')
+        logging.info(f'[{self.live_info.room_id}] processed {len(results)} videos')
         return results

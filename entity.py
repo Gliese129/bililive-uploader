@@ -5,6 +5,10 @@ from datetime import datetime
 from utils import FileUtils
 
 
+class LiveInfo:
+    pass
+
+
 class GlobalConfig:
     """ 录播bot配置
 
@@ -23,6 +27,7 @@ class GlobalConfig:
     webhooks: list[str]
     isDocker: bool
     workers: int
+    multipart: bool
 
     def __init__(self, folder_path: str):
         config = FileUtils.YmlReader(os.path.join(folder_path, 'global-config.yml'))
@@ -39,6 +44,7 @@ class GlobalConfig:
         self.delete_flag = config['recorder']['delete-after-upload'] \
             if config['recorder'].get('delete-after-upload') is not None else False
         self.webhooks = config['server']['webhooks'] if config['server'].get('webhooks') is not None else []
+        self.multipart = config['recorder']['multipart'] if config['recorder'].get('multipart') is not None else False
 
 
 class Condition:
@@ -69,11 +75,7 @@ class Condition:
             self.channel = None
 
 
-class LiveInfo:
-    pass
-
-
-class Room:
+class RoomConfig:
     """ 房间配置
 
     Fields:
@@ -124,46 +126,16 @@ class Room:
                     conditions.append(condition)
             except AttributeError as e:
                 logging.error(e)
-            finally:
-                pass
         return conditions
 
-    @staticmethod
-    def get_channel(channel_str: str) -> (str, str):
-        """ 获取频道
+    def set_channel(self, channel_str: str) -> None:
+        """ 设置频道
 
-        :param channel_str: 频道字符串
-        :return: 频道
+        :param channel_str: 频道(空格分割)
         """
         channels = channel_str.split(' ')
-        return (channels[0], channels[1]) if len(channels) == 2 else None
-
-
-class RoomConfig:
-    """ 房间配置(全部)
-
-    Fields:
-        rooms: 房间配置列表
-    """
-    rooms: list[Room]
-
-    def __init__(self, folder_path: str):
-        config = FileUtils.YmlReader(os.path.join(folder_path, 'room-config.yml'))
-        self.rooms = []
-        for room in config['rooms']:
-            self.rooms.append(Room(room))
-
-    def get_room_by_id(self, room_id: int, short_id: int = None) -> Room or None:
-        """ 根据房间id获取房间配置
-
-        :param room_id: 房间长号
-        :param short_id: 房间短号
-        :return: 房间配置
-        """
-        for room in self.rooms:
-            if room.id == room_id or room.id == short_id:
-                return room
-        return None
+        if len(channels) == 2:
+            self.channel = (channels[0], channels[1])
 
 
 class LiveInfo:
@@ -215,7 +187,7 @@ class VideoInfo:
     tid: int
     channel: (str, str)
 
-    def __init__(self, room_config: Room):
+    def __init__(self, room_config: RoomConfig):
         self.description = room_config.description
         self.tags = room_config.tags
         self.dynamic = room_config.dynamic

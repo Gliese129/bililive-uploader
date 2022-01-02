@@ -1,5 +1,4 @@
 # -*- coding : utf-8 -*-
-# coding: utf-8
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
 from entity import GlobalConfig, RoomConfig, LiveInfo
@@ -21,11 +20,14 @@ app.ctx.upload_queue = queue.Queue()
 async def processor(request):
     from tasks import dispatch_task
 
+    app.ctx.global_config = GlobalConfig(config_path)
     room_config = RoomConfig(config_path)
+
     request_body = request.json
     event_type = request_body['EventType']
     event_data = request_body['EventData']
     room_id = event_data['RoomId']
+
     if event_type == 'SessionStarted':
         logging.info(f'[{room_id}] receive webhook: session started')
         app.add_task(dispatch_task('session-start', data={
@@ -41,7 +43,6 @@ async def processor(request):
         logging.info(f'[{room_id}] receive webhook: session ended')
         app.add_task(dispatch_task('session-end', data={
             'event_data': event_data,
-            'global_config': global_config,
             'room_config': room_config
         }))
     return text('done')
@@ -51,6 +52,7 @@ async def processor(request):
 async def uploader(request):
     from tasks import dispatch_task
 
+    app.ctx.global_config = GlobalConfig(config_path)
     room_config = RoomConfig(config_path)
     logging.info('received request: record upload')
     sessdata = request.args.get('sessdata')
@@ -71,14 +73,13 @@ async def uploader(request):
         app.add_task(dispatch_task('video-upload', data={
             'access_key': access_key,
             'video_info': video_info,
-            'global_config': global_config,
             'room_config': room_config.get_room_by_id(live_info.room_id)
         }))
     return text('done')
 
 
 if __name__ == '__main__':
-    config_path = ''
+    # config_path = ''
     try:
         options, args = getopt.getopt(sys.argv[1:], 'c:', ['config='])
     except Exception as e:
@@ -88,7 +89,6 @@ if __name__ == '__main__':
         if option in ("-c", "--config"):
             config_path = value
     global_config = GlobalConfig(config_path)
-    logging.info('application run at port: %d' % global_config.port)
     cpu_count = multiprocessing.cpu_count()
     app.ctx.process_pool = ThreadPoolExecutor(max_workers=min(cpu_count, global_config.workers))
     app.run(host='0.0.0.0', port=global_config.port, debug=False, access_log=False)
