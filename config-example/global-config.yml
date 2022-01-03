@@ -4,7 +4,7 @@ recorder:
   delete-after-upload:  # 是否在上传完成后删除
   is-docker:  # 是否使用docker
   workers:  # 处理视频线程数
-  multipart:  # 视频是否多p(可能会导致视频上传失败), 默认false
+  multipart:  # 视频是否多p(取决于web接口，可能会导致视频上传失败), 默认false
 
 server:
   port: # 运行端口

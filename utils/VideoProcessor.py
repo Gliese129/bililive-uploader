@@ -144,9 +144,6 @@ class Processor:
             command = f'{exe_path} -f concat -safe 0 -i "{os.path.join(target_dir, "files.txt")}" -c ' \
                       f'copy "{os.path.join(target_dir, "record.flv")}"'
             await self.run_shell(command=command, prefix='ffmpeg')
-            # remove files.txt
-            os.remove(os.path.join(target_dir, 'files.txt'))
-
         logging.info(f'[{self.live_info.room_id}] converting danmaku files...')
         await self.make_damaku(multipart=multipart)
         if not multipart:

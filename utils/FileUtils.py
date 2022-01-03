@@ -68,7 +68,7 @@ def CopyFiles(files: list[str], target: str, types: list[str]) -> list[str]:
 
 
 def DeleteFolder(folder: str) -> None:
-    """ Delete an empty folder
+    """ Delete a folder and files in it
 
     :param folder: folder path
     :return: None
