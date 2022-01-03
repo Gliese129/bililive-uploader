@@ -119,7 +119,7 @@ class RoomConfig:
         for room in configs['rooms']:
             config = cls(room)
             if config.id == room_id or config.id == short_id:
-                return room
+                return config
         return None
 
     def list_proper_conditions(self, live_info: LiveInfo) -> list[Condition]:

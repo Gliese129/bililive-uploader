@@ -44,6 +44,7 @@ recorder:
   delete-after-upload:  # 是否在上传完成后删除*2
   is-docekr:  # 是否在docker中运行
   workers:  # 同时进行的处理视频任务数量*3
+  mulipart:  # 视频是否多p(使用web接口，粉丝数不足时会无法成功上传，请注意)， 默认false
 server:
   port: # 运行端口
   webhooks: # webhook, 在视频处理完成后触发

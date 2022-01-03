@@ -70,6 +70,7 @@ async def uploader(request):
 
 
 if __name__ == '__main__':
+    import tasks
     config_path = ''
     try:
         options, args = getopt.getopt(sys.argv[1:], 'c:', ['config='])
@@ -82,4 +83,4 @@ if __name__ == '__main__':
     global_config = GlobalConfig(config_path)
     cpu_count = multiprocessing.cpu_count()
     app.ctx.process_pool = ThreadPoolExecutor(max_workers=min(cpu_count, global_config.workers))
-    app.run(host='0.0.0.0', port=global_config.port, debug=False, access_log=False)
+    app.run(host='0.0.0.0', port=global_config.port, debug=False, access_log=False, auto_reload=True)

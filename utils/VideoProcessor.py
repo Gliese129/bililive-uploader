@@ -134,17 +134,16 @@ class Processor:
         self.process_videos = FileUtils.CopyFiles(files=self.origin_videos, target=target_dir, types=['flv', 'xml'])
         if not multipart:
             # not allow multipart -> combine all videos to record.flv
+            logging.info(f'[{self.live_info.room_id}] combine all videos to record.flv')
             files = ''
             for video in self.process_videos:
                 files += f"file '{video}.flv'\n"
             with open(os.path.join(target_dir, 'files.txt'), 'w') as f:
-                if self.isDocker:
-                    exe_path = 'ffmpeg'
-                else:
-                    exe_path = 'resources\\ffmpeg'
                 f.write(files)
-                command = f'{exe_path} -f concat -i files.txt -c copy record.flv'
-                await self.run_shell(command=command, prefix='ffmpeg')
+            exe_path = 'ffmpeg' if self.isDocker else 'resources\\ffmpeg'
+            command = f'{exe_path} -f concat -safe 0 -i "{os.path.join(target_dir, "files.txt")}" -c ' \
+                      f'copy "{os.path.join(target_dir, "record.flv")}"'
+            await self.run_shell(command=command, prefix='ffmpeg')
             # remove files.txt
             os.remove(os.path.join(target_dir, 'files.txt'))
 
@@ -159,10 +158,7 @@ class Processor:
 
         :return:
         """
-        if self.isDocker:
-            exe_path = '/DanmakuFactory/DanmakuFactory'
-        else:
-            exe_path = 'resources\\DanmakuFactory.exe'
+        exe_path = '/DanmakuFactory/DanmakuFactory' if self.isDocker else 'resources\\DanmakuFactory.exe'
         # set shell command
         command = ''
         if multipart:
@@ -171,7 +167,8 @@ class Processor:
                 command += f'{exe_path} -o "{record}.ass" -i "{record}.xml" -d 50 -S 55 --ignore-warnings\n'
         else:
             # not allow multipart -> convert together
-            command = f'{exe_path} -o "record.ass" -i '
+            target_dir = os.path.join(self.process_path, self.live_info.session_id)
+            command = f'{exe_path} -o "{os.path.join(target_dir, "record.ass")}" -i '
             for record in self.process_videos:
                 command += f'"{record}.xml" '
             command += f'-d 50 -S 55 --ignore-warnings'
@@ -187,10 +184,7 @@ class Processor:
 
         :return: 处理后的视频文件
         """
-        if self.isDocker:
-            exe_path = 'ffmpeg'
-        else:
-            exe_path = 'resources\\ffmpeg'
+        exe_path = 'ffmpeg' if self.isDocker else 'resources\\ffmpeg'
         # set shell command
         command = ''
         index = 0

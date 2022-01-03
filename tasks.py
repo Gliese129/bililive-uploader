@@ -51,12 +51,12 @@ async def session_end(room_id: int, event_data: dict, room_config: RoomConfig) -
     if process.check_if_need_process():
         logging.info(f'[{room_id}] processing...')
         try:
-            await process.prepare()
+            await process.prepare(multipart=global_config.multipart)
         except FileExistsError as e:
             logging.warning(e)
             return
         logging.info(f'[{room_id}] mixing damaku into videos...')
-        result_videos = asyncio.run(process.composite())
+        result_videos = await process.composite()
         logging.info(f'[{room_id}] successfully proceed videos')
         # send webhook
         for url in global_config.webhooks:
