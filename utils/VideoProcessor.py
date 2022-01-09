@@ -7,6 +7,8 @@ from utils import FileUtils
 from entity import RoomConfig, LiveInfo
 import logging
 
+from utils.FileUtils import DeleteFiles
+
 video_cache = './cache/videos.json'
 time_cache = './cache/times.json'
 app = Sanic.get_app()
@@ -19,7 +21,7 @@ class Processor:
     config: RoomConfig
     recorder_path: str
     process_path: str
-    isDocker: bool
+    docker: bool
 
     def __init__(self, event_data: dict, room_config: RoomConfig):
         global_config = app.ctx.global_config
@@ -28,7 +30,7 @@ class Processor:
         self.process_videos = []
         self.recorder_path = global_config.recorder_dir
         self.process_path = global_config.process_dir
-        self.isDocker = global_config.isDocker
+        self.docker = global_config.docker
         rooms = FileUtils.ReadJson(time_cache)
         self.live_info.start_time = datetime.datetime.fromtimestamp(rooms[str(self.live_info.room_id)])
         self.config = room_config
@@ -133,21 +135,22 @@ class Processor:
         logging.info(f'[{self.live_info.room_id}] moving files to dictionary {target_dir}')
         self.process_videos = FileUtils.CopyFiles(files=self.origin_videos, target=target_dir, types=['flv', 'xml'])
         if not multipart:
-            # not allow multipart -> combine all videos to record.flv
+            # 不分p -> 将所有视频合并到record.flv
             logging.info(f'[{self.live_info.room_id}] combine all videos to record.flv')
             files = ''
             for video in self.process_videos:
                 files += f"file '{video}.flv'\n"
             with open(os.path.join(target_dir, 'files.txt'), 'w') as f:
                 f.write(files)
-            exe_path = 'ffmpeg' if self.isDocker else 'resources\\ffmpeg'
+            exe_path = 'ffmpeg' if self.docker else 'resources\\ffmpeg'
             command = f'{exe_path} -f concat -safe 0 -i "{os.path.join(target_dir, "files.txt")}" -c ' \
                       f'copy "{os.path.join(target_dir, "record.flv")}"'
             await self.run_shell(command=command, prefix='ffmpeg')
         logging.info(f'[{self.live_info.room_id}] converting danmaku files...')
         await self.make_damaku(multipart=multipart)
         if not multipart:
-            # make process_videos only contains record
+            # 替换视频文件
+            DeleteFiles(files=self.process_videos, types=['flv'])
             self.process_videos = [os.path.join(target_dir, 'record')]
 
     async def make_damaku(self, multipart: bool = False) -> None:
@@ -155,15 +158,14 @@ class Processor:
 
         :return:
         """
-        exe_path = '/DanmakuFactory/DanmakuFactory' if self.isDocker else 'resources\\DanmakuFactory.exe'
-        # set shell command
+        exe_path = '/DanmakuFactory/DanmakuFactory' if self.docker else 'resources\\DanmakuFactory.exe'
         command = ''
         if multipart:
-            # allow multipart -> convert separately
+            # 允许多p -> 分别生成弹幕
             for record in self.process_videos:
                 command += f'{exe_path} -o "{record}.ass" -i "{record}.xml" -d 50 -S 55 --ignore-warnings\n'
         else:
-            # not allow multipart -> convert together
+            # 不允许多p -> 合并成一个弹幕文件
             target_dir = os.path.join(self.process_path, self.live_info.session_id)
             command = f'{exe_path} -o "{os.path.join(target_dir, "record.ass")}" -i '
             for record in self.process_videos:
@@ -171,17 +173,13 @@ class Processor:
             command += f'-d 50 -S 55 --ignore-warnings'
         # run shell command
         await self.run_shell(command=command, prefix='danmaku factory')
-        # check if there are xml files without appropriate ass files
-        for record in self.process_videos:
-            if not os.path.exists(f'{record}.ass'):
-                logging.warning(f'file {record}.xml does not have appropriate ass file')
 
     async def composite(self) -> list[str]:
         """ 合成弹幕和源视频
 
         :return: 处理后的视频文件
         """
-        exe_path = 'ffmpeg' if self.isDocker else 'resources\\ffmpeg'
+        exe_path = 'ffmpeg' if self.docker else 'resources\\ffmpeg'
         # set shell command
         command = ''
         index = 0
@@ -191,11 +189,11 @@ class Processor:
             output = os.path.join(self.process_path, self.live_info.session_id, f'out{index}.flv')
             results.append(output)
             if os.path.exists(f'{record}.ass'):
-                # ass file exists -> use combine command
+                # 存在弹幕文件
                 ass_file = record.replace("\\", "/").replace(":", "\\:") + '.ass'
                 command += f'{exe_path} -i "{record}.flv" -vf "subtitles=\'{ass_file}\'" "{output}"\n'
             else:
-                # ass file does not exist -> use copy command
+                # 不存在弹幕文件
                 command += f'{exe_path} -i "{record}.flv" -c copy "{output}"\n'
         # run shell command
         await self.run_shell(command=command, prefix='ffmpeg')

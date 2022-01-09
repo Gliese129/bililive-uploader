@@ -29,9 +29,9 @@ server:
 ### 上传视频
 
 处理完的录播将会放入上传队列等待上传，
-此时需要向[http://{your host}/video-upload]()发送get请求，请求中需要
-带上sessdata,bili_jct,buvid3这三个参数。上传失败的视频会重新放入队列中，
-等待下次上传。
+此时需要向[http://{your host}:{your port}/video-upload]()发送get请求
+
+上传失败的视频会重新放入队列中， 等待下次上传
 
 **注意:重启程序会导致上传队列清空**
 
@@ -45,13 +45,20 @@ recorder:
   is-docekr:  # 是否在docker中运行
   workers:  # 同时进行的处理视频任务数量*3
   mulipart:  # 视频是否多p(使用web接口，粉丝数不足时会无法成功上传，请注意)， 默认false
+  auto-upload:  # 是否自动上传，默认true
 server:
   port: # 运行端口
   webhooks: # webhook, 在视频处理完成后触发
+account:
+  credential: # 账户凭据, 详见 https://bili.moyu.moe/#/get-credential *4
+    sessdata:
+    bili_jct:
+    buvid3:
 ~~~
 1. 建议将此目录同时作为配置文件放置目录，~~因为这样省事~~
 2. 如果设置为true，即便录播不需要处理也会删除
 3. 如果不设置，则默认取CPU核心数和32的最小值;如果设置，则取设置数值和CPU核心数的最小值
+4. 账户凭据请勿url decode，否则会上传失败
 
 webhook内容:
 ~~~ json

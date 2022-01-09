@@ -2,10 +2,17 @@ recorder:
   recorder-dir:  # 录播姬工作目录
   process-dir:  # 输出位置
   delete-after-upload:  # 是否在上传完成后删除
-  is-docker:  # 是否使用docker
+  is-docker:  # 是否使用docker，默认false
   workers:  # 处理视频线程数
   multipart:  # 视频是否多p(取决于web接口，可能会导致视频上传失败), 默认false
+  auto-upload:  # 是否自动上传，默认true
 
 server:
   port: # 运行端口
   webhooks: # webhook, 在上传完成后触发
+
+account:
+  credential:   # 账户凭据, 详见 https://bili.moyu.moe/#/get-credential
+    sessdata:
+    bili_jct:
+    buvid3:

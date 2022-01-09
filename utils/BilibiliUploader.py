@@ -1,8 +1,9 @@
 # -*- coding: utf-8 -*-
+import asyncio
 import logging
 import os
 
-from bilibili_api import video_uploader
+from bilibili_api import video_uploader, Credential
 from utils import FileUtils
 from entity import RoomConfig, LiveInfo, VideoInfo
 from utils.FileUtils import ReadJson
@@ -20,8 +21,8 @@ class Uploader:
     room_config: RoomConfig
     channel: (str, str)
 
-    def __init__(self, access_key: dict, room_config: RoomConfig, videos: list[str], live_info: LiveInfo, **unused):
-        self.credential = video_uploader.Credential(**access_key)
+    def __init__(self, credential: Credential, room_config: RoomConfig, videos: list[str], live_info: LiveInfo, **unused):
+        self.credential = credential
         self.videos = videos
         self.video_info = VideoInfo(room_config=room_config)
         self.room_config = room_config

@@ -88,5 +88,4 @@ def DeleteFiles(files: list[str], types: list[str]) -> None:
         for file_type in types:
             if os.path.exists(file + '.' + file_type):
                 delete_file = f'{file}.{file_type}'
-                logging.debug('deleting file: %s' % delete_file)
                 os.remove(delete_file)

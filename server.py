@@ -2,6 +2,9 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
+
+from bilibili_api import Credential
+
 from entity import GlobalConfig, RoomConfig, LiveInfo
 import logging
 import getopt
@@ -46,12 +49,6 @@ async def processor(request):
 async def uploader(request):
     app.ctx.global_config = GlobalConfig(config_path)
     logging.info('received request: record upload')
-    sessdata = request.args.get('sessdata')
-    access_key = {
-        'sessdata': quote(sessdata),
-        'bili_jct': request.args.get('bili_jct'),
-        'buvid3': request.args.get('buvid3')
-    }
     # copy upload_queue to video_queue
     upload_queue = app.ctx.upload_queue
     video_queue = queue.Queue()
@@ -61,8 +58,9 @@ async def uploader(request):
     while not video_queue.empty():
         video_info = video_queue.get()
         live_info: LiveInfo = video_info['live_info']
+        credential = app.ctx.global_config.credential
         app.add_task(app.dispatch(f'record.upload.{live_info.room_id}', context={
-            'access_key': access_key,
+            'credential': credential,
             'video_info': video_info,
             'room_config': RoomConfig.get_config(config_path, live_info.room_id)
         }))
@@ -83,4 +81,4 @@ if __name__ == '__main__':
     global_config = GlobalConfig(config_path)
     cpu_count = multiprocessing.cpu_count()
     app.ctx.process_pool = ThreadPoolExecutor(max_workers=min(cpu_count, global_config.workers))
-    app.run(host='0.0.0.0', port=global_config.port, debug=False, access_log=False, auto_reload=True)
+    app.run(host='0.0.0.0', port=global_config.port, debug=True, access_log=True, auto_reload=True)

@@ -2,6 +2,9 @@ import asyncio
 from datetime import datetime
 import logging
 import os
+
+import requests
+from bilibili_api import Credential
 from sanic import Sanic
 from utils.BilibiliUploader import Uploader
 from utils.VideoProcessor import Processor
@@ -65,13 +68,17 @@ async def session_end(room_id: int, event_data: dict, room_config: RoomConfig) -
                 work_dir=os.path.join(global_config.process_dir, process.live_info.session_id)
             ))
         # add video to upload queue
-        logging.info(f'[{room_id}] adding videos to upload waiting list...')
+        if not global_config.auto_upload:
+            logging.info(f'[{room_id}] adding videos to waiting list...')
         upload_queue = app.ctx.upload_queue
         upload_queue.put({
             'videos': result_videos,
             'origin_videos': process.origin_videos,
             'live_info': process.live_info
         })
+        if global_config.auto_upload:
+            logging.info(f'[{room_id}] uploading videos...')
+            requests.get(f'http://localhost:{global_config.port}/video-upload')
     else:
         # not need to process + delete_flag -> delete files
         if global_config.delete_flag:
@@ -80,17 +87,17 @@ async def session_end(room_id: int, event_data: dict, room_config: RoomConfig) -
 
 
 @app.signal('record.upload.<room_id:int>')
-async def video_upload(room_id: int, room_config: RoomConfig, access_key: dict, video_info: dict) -> None:
+async def video_upload(room_id: int, room_config: RoomConfig, credential: Credential, video_info: dict) -> None:
     """ 上传视频
 
     :param room_id: 房间id
     :param room_config: 房间配置
     :param video_info: 视频信息
-    :param access_key: 密钥
+    :param credential: 用户凭证
     :return:
     """
     global_config = app.ctx.global_config
-    uploader = Uploader(access_key=access_key, room_config=room_config, **video_info)
+    uploader = Uploader(credential=credential, room_config=room_config, **video_info)
     result = await uploader.upload()
     if result:
         # successfully upload or no proper files -> delete files
@@ -103,6 +110,7 @@ async def video_upload(room_id: int, room_config: RoomConfig, access_key: dict, 
             DeleteFiles(files=video_info.get('origin_videos'), types=['flv', 'xml'])
     else:
         # failed upload -> add to upload queue again
+        logging.warning(f'[{room_id}] failed upload videos, adding to upload queue again...')
         upload_queue = app.ctx.upload_queue
         upload_queue.put(video_info)
 
@@ -120,18 +128,11 @@ async def send_webhook(url: str, event_data: dict, videos: list[str], work_dir: 
         'User-Agent': 'Record Uploader',
         'content-type': 'application/json'
     }
-    # send webhook to url with sanic and set timeout 100s (retry 3 times)
-    async with app.test_client() as client:
-        for i in range(3):
-            flag = False
-            try:
-                async with client.post(url, json=request_body, headers=headers, timeout=100) as response:
-                    if response.status == 200:
-                        logging.info(f'Send webhook to {url} success')
-                        flag = True
-                    else:
-                        logging.error(f'{response.status}: {response.reason}')
-                        raise Exception(f'{response.status}: {response.reason}')
-            finally:
-                if flag:
-                    break
+    # send webhook to url with requests and set timeout 100s (retry 3 times)
+    for _ in range(3):
+        with requests.post(url, json=request_body, headers=headers, timeout=100) as response:
+            if response.status_code == 200:
+                logging.info(f'send webhook to {url} successfully')
+                return
+            else:
+                logging.error(f'{response.status_code}: {response.reason}')

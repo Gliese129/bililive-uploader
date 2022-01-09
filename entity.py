@@ -3,6 +3,7 @@ import os
 import re
 from datetime import datetime
 from utils import FileUtils
+from bilibili_api import Credential
 
 
 class LiveInfo:
@@ -25,15 +26,17 @@ class GlobalConfig:
     delete_flag: bool
     port: int
     webhooks: list[str]
-    isDocker: bool
+    docker: bool
     workers: int
     multipart: bool
+    auto_upload: bool
+    credential: Credential
 
     def __init__(self, folder_path: str):
         config = FileUtils.YmlReader(os.path.join(folder_path, 'global-config.yml'))
-        self.isDocker = config['recorder']['is-docker'] if config['recorder'].get('is-docker') is not None else False
+        self.docker = config['recorder']['is-docker'] if config['recorder'].get('is-docker') is not None else False
         self.workers = config['recorder']['workers'] if config['recorder'].get('workers') is not None else 32
-        if self.isDocker:
+        if self.docker:
             self.recorder_dir = '/recorder'
             self.process_dir = '/process'
             self.port = 8866
@@ -45,6 +48,10 @@ class GlobalConfig:
             if config['recorder'].get('delete-after-upload') is not None else False
         self.webhooks = config['server']['webhooks'] if config['server'].get('webhooks') is not None else []
         self.multipart = config['recorder']['multipart'] if config['recorder'].get('multipart') is not None else False
+        self.auto_upload = config['recorder']['auto-upload'] \
+            if config['recorder'].get('auto-upload') is not None else True
+        if self.auto_upload:
+            self.credential = Credential(**config['account']['credential'])
 
 
 class Condition:
@@ -101,7 +108,7 @@ class RoomConfig:
         self.id = data['id']
         self.title = data['title']
         self.description = data['description'] if data.get('description') is not None else default_desc
-        self.dynamic = data['dynamic'] if data.get('dynamic') is not None else ''
+        self.dynamic = data['dynamic'] if data.get('dynamic') is not None else '\u200B'
         self.tags = data['tags'].split(',') if data.get('tags') is not None else []
         self.conditions = []
         if data.get('conditions') is not None:
