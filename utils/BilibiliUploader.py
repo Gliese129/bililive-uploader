@@ -9,7 +9,7 @@ from entity import RoomConfig, LiveInfo, VideoInfo
 from utils.FileUtils import ReadJson
 
 channel_data = './resources/channel.json'
-live_to_video_data = './resources/live-to-video.json'
+live_to_video_data = './config/live-to-video.json'
 
 
 class Uploader:
