@@ -1,15 +1,15 @@
 # -*- coding: utf-8 -*-
-import asyncio
 import logging
 import os
 
 from bilibili_api import video_uploader, Credential
+from sanic import Sanic
+
 from utils import FileUtils
-from entity import RoomConfig, LiveInfo, VideoInfo
+from entity import RoomConfig, LiveInfo, VideoInfo, GlobalConfig
 from utils.FileUtils import ReadJson
 
-channel_data = './resources/channel.json'
-live_to_video_data = './config/live-to-video.json'
+app = Sanic.get_app()
 
 
 class Uploader:
@@ -20,14 +20,18 @@ class Uploader:
     video_info: VideoInfo
     room_config: RoomConfig
     channel: (str, str)
+    live2video: dict
 
-    def __init__(self, credential: Credential, room_config: RoomConfig, videos: list[str], live_info: LiveInfo, **unused):
+    def __init__(self, credential: Credential, room_config: RoomConfig, videos: list[str], live_info: LiveInfo,
+                 **unused):
         self.credential = credential
         self.videos = videos
         self.video_info = VideoInfo(room_config=room_config)
         self.room_config = room_config
         self.live_info = live_info
         self.room_id = live_info.room_id
+        global_config: GlobalConfig = app.ctx.global_config
+        self.live2video = ReadJson(path=global_config.live2video_path)
 
     @staticmethod
     def get_channel(channel: str) -> (str, str):
@@ -62,8 +66,8 @@ class Uploader:
         self.video_info.channel = self.room_config.channel
         self.video_info.tags = self.room_config.tags
         # 在live-to-video中查找channel，查到则直接替换
-        live_to_video = ReadJson(path=live_to_video_data)
-        for parent_area in live_to_video:
+
+        for parent_area in self.live2video:
             flag = False
             if parent_area.get('name') == self.live_info.parent_area:
                 # 直播父分区可以直接对应频道
@@ -128,7 +132,7 @@ class Uploader:
         :param child_area: 子区域
         :return: 分区id
         """
-        channel = FileUtils.ReadJson(path=channel_data)
+        channel = FileUtils.ReadJson(path='./resources/channel.json')
         tid = 0
         for main_ch in channel:
             if main_ch['name'] == parent_area:
