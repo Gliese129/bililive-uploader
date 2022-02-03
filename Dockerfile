@@ -57,7 +57,7 @@ COPY ./requirements.txt /app/requirements.txt
 COPY ./*.py /app/.
 COPY ./utils /app/utils
 COPY ./resources/channel.json /app/resources/channel.json
-COPY ./resources/live-to-video.json /app/resources/live-to-video.json
+COPY ./resources/live2video.json /app/resources/live2video.json
 
 WORKDIR /app
 
