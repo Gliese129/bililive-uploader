@@ -3,12 +3,12 @@
 ### 运行程序
 #### python 启动
 ~~~ commandline
-python server.py -c ${your config path}
+python server.py -w ${work dir}
 ~~~
 
 #### docker 启动
 ~~~ commandline
-docker run -d -p ${port-outside}:8866 -v ${config-path}:/config -v ${bililive-recorder-path}:/recorder -v ${video-process-path}:/process  --name record-uploader gliese/record-uploader:latest
+docker run -d -p ${port-outside}:8866 -v ${work-dir}:/process -v ${bililive-recorder-path}:/recorder --name record-uploader gliese129/record-uploader:latest
 ~~~
 ~~~ yaml
 # 请确保 global-config.yml 中:
@@ -18,18 +18,21 @@ recorder:
 # 此时下面的字段将没有意义
 recorder:
    recorder-dir: /recorder
-   process-dir: /process
 server:
    port: 8866
 ~~~
 
-**请确保该目录下存在 global-config.yml 和 room-config.yml**
+**请确保该目录下存在 config/global-config.yml 和 config/room-config.yml**
+
+**程序启动后config目录下会出现live2video.json，请勿删除**
 
 **请在B站录播姬webhook v2 中加上[http://${your host}//video-process]()**
 ### 上传视频
 
 处理完的录播将会放入上传队列等待上传，
 此时需要向[http://{your host}:{your port}/video-upload]()发送get请求
+
+如果设置了自动上传，将会在视频处理完后自动发送请求
 
 上传失败的视频会重新放入队列中， 等待下次上传
 
@@ -40,25 +43,23 @@ server:
 ~~~ yaml
 recorder:
   recorder-dir:  # 录播姬工作目录
-  process-dir:  # 输出位置*1
-  delete-after-upload:  # 是否在上传完成后删除*2
+  delete-after-upload:  # 是否在上传完成后删除*1
   is-docekr:  # 是否在docker中运行
-  workers:  # 同时进行的处理视频任务数量*3
+  workers:  # 同时进行的处理视频任务数量*2
   mulipart:  # 视频是否多p(使用web接口，粉丝数不足时会无法成功上传，请注意)， 默认false
   auto-upload:  # 是否自动上传，默认true
 server:
   port: # 运行端口
   webhooks: # webhook, 在视频处理完成后触发
 account:
-  credential: # 账户凭据, 详见 https://bili.moyu.moe/#/get-credential *4
+  credential: # 账户凭据, 详见 https://bili.moyu.moe/#/get-credential *3
     sessdata:
     bili_jct:
     buvid3:
 ~~~
-1. 建议将此目录同时作为配置文件放置目录，~~因为这样省事~~
-2. 如果设置为true，即便录播不需要处理也会删除
-3. 如果不设置，则默认取CPU核心数和32的最小值;如果设置，则取设置数值和CPU核心数的最小值
-4. 账户凭据请勿url decode，否则会上传失败
+1. 如果设置为true，即便录播不需要处理也会删除
+2. 如果不设置，则默认取CPU核心数和32的最小值;如果设置，则取设置数值和CPU核心数的最小值
+3. 账户凭据请勿url decode，否则会上传失败
 
 webhook内容:
 ~~~ json
@@ -114,11 +115,11 @@ rooms:
    
 **condition的判定策略为&(and), 即只要有一个不符合就判定不需要处理**
 
-**channel覆盖逻辑: condition channel > live-to-video > basic channel**
+**channel覆盖逻辑: condition channel > live2video > default channel**
 ****
 
 ## Contribute
-### live-to-video.json
+### live2video.json
 直播分区与视频分区的映射
 ~~~json
 [
@@ -139,3 +140,5 @@ rooms:
 ~~~
 以上面的json文本为例，直播父分区为“手游”的录播会被直接归类为“游戏 手机游戏”，
 而“生活”分区因为同级没有channel，不会被映射，但是“生活 萌宠”会被归类为“生活 动物圈”
+
+直接修改/config/live2video.json即可，修改/resource/live2video.json是无效的

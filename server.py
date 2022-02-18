@@ -1,18 +1,17 @@
 # -*- coding : utf-8 -*-
 import asyncio
+import os
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
-
-from bilibili_api import Credential
-
 from entity import GlobalConfig, RoomConfig, LiveInfo
 import logging
 import getopt
 import sys
 import queue
-from urllib.parse import quote
 from sanic import Sanic
 from sanic.response import text
+
+from utils.FileUtils import CopyFile
 
 logging.basicConfig(level=logging.DEBUG)
 
@@ -22,7 +21,7 @@ app.ctx.upload_queue = queue.Queue()
 
 @app.post('/video-process')
 async def processor(request):
-    app.ctx.global_config = GlobalConfig(config_path)
+    app.ctx.global_config = GlobalConfig(work_dir)
     request_body = request.json
     event_type = request_body['EventType']
     event_data = request_body['EventData']
@@ -47,7 +46,7 @@ async def processor(request):
 
 @app.get('/video-upload')
 async def uploader(request):
-    app.ctx.global_config = GlobalConfig(config_path)
+    app.ctx.global_config = GlobalConfig(work_dir)
     logging.info('received request: record upload')
     # copy upload_queue to video_queue
     upload_queue = app.ctx.upload_queue
@@ -69,16 +68,18 @@ async def uploader(request):
 
 if __name__ == '__main__':
     import tasks
-    config_path = ''
+    work_dir = ''
     try:
-        options, args = getopt.getopt(sys.argv[1:], 'c:', ['config='])
+        options, args = getopt.getopt(sys.argv[1:], 'w:', ['work-dir='])
     except Exception as e:
         logging.error(e)
         sys.exit(2)
     for option, value in options:
-        if option in ("-c", "--config"):
-            config_path = value
-    global_config = GlobalConfig(config_path)
+        if option in ("-w", "--work-dir"):
+            work_dir = value
+    config_path = os.path.join(work_dir, 'config')
+    global_config = GlobalConfig(work_dir)
+    CopyFile('./resources/live2video.json', os.path.join(global_config.process_dir, 'config'))
     cpu_count = multiprocessing.cpu_count()
     app.ctx.process_pool = ThreadPoolExecutor(max_workers=min(cpu_count, global_config.workers))
-    app.run(host='0.0.0.0', port=global_config.port, debug=True, access_log=True, auto_reload=True)
+    app.run(host='0.0.0.0', port=global_config.port, debug=False, access_log=False, auto_reload=True)

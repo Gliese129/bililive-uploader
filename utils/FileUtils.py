@@ -67,6 +67,21 @@ def CopyFiles(files: list[str], target: str, types: list[str]) -> list[str]:
     return new_files
 
 
+def CopyFile(file: str, target: str) -> str:
+    """ Copy file to target folder
+
+    :param file: files need to copy
+    :param target: target folder
+    :return: files copied
+    """
+    if not os.path.exists(target):
+        os.makedirs(target)
+    new_file = os.path.join(target, os.path.split(file)[1])
+    if not os.path.exists(new_file):
+        copy(src=file, dst=target)
+    return new_file
+
+
 def DeleteFolder(folder: str) -> None:
     """ Delete a folder and files in it
 

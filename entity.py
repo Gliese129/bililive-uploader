@@ -20,6 +20,7 @@ class GlobalConfig:
         port: 录播bot监听端口
         webhooks: webhook发送url
         isDocker: 是否使用docker运行
+        live2video_path: 直播转视频频道
     """
     recorder_dir: str
     process_dir: str
@@ -31,9 +32,11 @@ class GlobalConfig:
     multipart: bool
     auto_upload: bool
     credential: Credential
+    live2video_path: str
 
-    def __init__(self, folder_path: str):
-        config = FileUtils.YmlReader(os.path.join(folder_path, 'global-config.yml'))
+    def __init__(self, work_dir: str):
+        config_dir = os.path.join(work_dir, 'config')
+        config = FileUtils.YmlReader(os.path.join(config_dir, 'global-config.yml'))
         self.docker = config['recorder']['is-docker'] if config['recorder'].get('is-docker') is not None else False
         self.workers = config['recorder']['workers'] if config['recorder'].get('workers') is not None else 32
         if self.docker:
@@ -42,7 +45,7 @@ class GlobalConfig:
             self.port = 8866
         else:
             self.recorder_dir = config['recorder']['recorder-dir']
-            self.process_dir = config['recorder']['process-dir']
+            self.process_dir = work_dir
             self.port = config['server']['port']
         self.delete_flag = config['recorder']['delete-after-upload'] \
             if config['recorder'].get('delete-after-upload') is not None else False
@@ -52,6 +55,7 @@ class GlobalConfig:
             if config['recorder'].get('auto-upload') is not None else True
         if self.auto_upload:
             self.credential = Credential(**config['account']['credential'])
+        self.live2video_path = os.path.join(self.process_dir, 'config', 'live2video.json')
 
 
 class Condition:
