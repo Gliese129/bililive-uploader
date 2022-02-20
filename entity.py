@@ -80,7 +80,7 @@ class Condition:
         self.tags = data['tags'].split(',') if data.get('tags') is not None else []
         self.process = data['process'] if data.get('process') is not None else True
         if data.get('channel') is not None:
-            channels = data['channel'].split('')
+            channels = data['channel'].split(' ')
             self.channel = (channels[0], channels[1]) if len(channels) == 2 else None
         else:
             self.channel = None
