@@ -2,6 +2,8 @@ import logging
 import os
 import re
 from datetime import datetime
+from typing import overload
+
 from utils import FileUtils
 from bilibili_api import Credential
 
@@ -12,55 +14,53 @@ class LiveInfo:
 
 class GlobalConfig:
     """ 录播bot配置
-
-    Fields:
-        recorder_dir: B站录播姬工作目录
-        process_dir: 录播bot工作目录
-        delete_flag: 是否上传后删除
+    Configs:
+        record_dir: B站录播姬工作目录
+        work_dir: 录播bot工作目录
+        delete: 是否上传后删除
         port: 录播bot监听端口
         webhooks: webhook发送url
-        isDocker: 是否使用docker运行
-        live2video_path: 直播转视频频道
+        workers: 线程数
+        multipart: 是否多p
+        auto_upload: 是否自动上传
+        min_time: 单个录播最小时长
+        credential: B站凭据
     """
-    recorder_dir: str
-    process_dir: str
-    delete_flag: bool
+    record_dir: str
+    work_dir: str
+    delete: bool
     port: int
     webhooks: list[str]
-    docker: bool
     workers: int
     multipart: bool
     auto_upload: bool
+    min_time: int
     credential: Credential
-    live2video_path: str
 
     def __init__(self, work_dir: str):
         config_dir = os.path.join(work_dir, 'config')
         config = FileUtils.YmlReader(os.path.join(config_dir, 'global-config.yml'))
-        self.docker = config['recorder']['is-docker'] if config['recorder'].get('is-docker') is not None else False
-        self.workers = config['recorder']['workers'] if config['recorder'].get('workers') is not None else 32
-        if self.docker:
-            self.recorder_dir = '/recorder'
-            self.process_dir = '/process'
+        is_docker = config['recorder'].get('is-docker') or False
+        if is_docker:
+            self.record_dir = '/record'
+            self.work_dir = '/process'
             self.port = 8866
         else:
-            self.recorder_dir = config['recorder']['recorder-dir']
-            self.process_dir = work_dir
+            self.record_dir = config['recorder']['recorder-dir']
+            self.work_dir = work_dir
             self.port = config['server']['port']
-        self.delete_flag = config['recorder']['delete-after-upload'] \
-            if config['recorder'].get('delete-after-upload') is not None else False
-        self.webhooks = config['server']['webhooks'] if config['server'].get('webhooks') is not None else []
-        self.multipart = config['recorder']['multipart'] if config['recorder'].get('multipart') is not None else False
-        self.auto_upload = config['recorder']['auto-upload'] \
-            if config['recorder'].get('auto-upload') is not None else True
+        self.delete = config['recorder'].get('delete-after-upload') is not False
+        self.webhooks = config['server'].get('webhooks') or []
+        self.workers = config['recorder'].get('workers') or 1
+        self.multipart = config['recorder'].get('multipart') is True
+        self.auto_upload = config['recorder'].get('auto-upload') is not False
         if self.auto_upload:
             self.credential = Credential(**config['account']['credential'])
-        self.live2video_path = os.path.join(self.process_dir, 'config', 'live2video.json')
+        self.min_time = config['recorder'].get('min-time') or 0
 
 
 class Condition:
     """ 房间额外条件配置
-
     Fields:
         item: 条件名称
         regexp: 正则表达式
@@ -74,79 +74,69 @@ class Condition:
     channel: (str, str)
     process: bool
 
-    def __init__(self, data: dict):
-        self.item = data['item']
-        self.regexp = str(data['regexp'])
-        self.tags = data['tags'].split(',') if data.get('tags') is not None else []
-        self.process = data['process'] if data.get('process') is not None else True
-        if data.get('channel') is not None:
-            channels = data['channel'].split(' ')
-            self.channel = (channels[0], channels[1]) if len(channels) == 2 else None
-        else:
-            self.channel = None
+    def __init__(self, config: dict):
+        self.item = config['item']
+        self.regexp = str(config['regexp'])
+        self.process = config.get('process') is not False
+        self.tags = (config.get('tags') or '').split(',')
+        channels = (config.get('channel') or '').split(' ')
+        self.channel = (channels[0], channels[1]) if len(channels) == 2 else None
 
 
 class RoomConfig:
     """ 房间配置
-
-    Fields:
+    Configs:
         id: 房间id, 长短号均可
-        tags: 上传标签
-        channel: 上传频道
         title: 视频标题(模板字符串)
         description: 视频描述(模板字符串)
         dynamic: 视频动态(模板字符串)
+        channel: 上传频道
+        tags: 上传标签
         conditions: 房间额外条件
     """
     id: int
-    tags: list[str]
-    channel: (str, str)
     title: str
     description: str
     dynamic: str
+    channel: (str, str)
+    tags: list[str]
     conditions: list[Condition]
 
-    def __init__(self, data: dict):
+    def __init__(self, config: dict):
         default_desc = '本录播由@_Gliese_的脚本自动处理上传'
 
-        self.id = data['id']
-        self.title = data['title']
-        self.description = data['description'] if data.get('description') is not None else default_desc
-        self.dynamic = data['dynamic'] if data.get('dynamic') is not None else '\u200B'
-        self.tags = data['tags'].split(',') if data.get('tags') is not None else []
-        self.conditions = []
-        if data.get('conditions') is not None:
-            for condition in data['conditions']:
-                self.conditions.append(Condition(condition))
-        if data.get('channel') is not None:
-            channels = data['channel'].split(' ')
-            self.channel = (channels[0], channels[1]) if len(channels) == 2 else None
-        else:
-            self.channel = None
+        self.id = config['id']
+        self.title = config.get('title') or '{title}'
+        self.description = config.get('description') or default_desc
+        self.dynamic = config.get('dynamic') or ''
+        self.tags = (config.get('tags') or '').split(',')
+        self.conditions = [Condition(c) for c in config.get('conditions') or []]
+        channels = (config.get('channel') or '').split(' ')
+        self.channel = (channels[0], channels[1]) if len(channels) == 2 else None
 
     @classmethod
-    def get_config(cls, folder_path: str, room_id: int, short_id: int = None):
-        configs = FileUtils.YmlReader(os.path.join(folder_path, 'room-config.yml'))
+    def get_config(cls, global_config: GlobalConfig, room_id: int) -> 'RoomConfig' or None:
+        config_dir = os.path.join(global_config.work_dir, 'config', 'room-config.yml')
+        configs = FileUtils.YmlReader(config_dir)
         for room in configs['rooms']:
-            config = cls(room)
-            if config.id == room_id or config.id == short_id:
-                return config
+            if int(room['id']) == room_id:
+                return cls(room)
         return None
 
-    def list_proper_conditions(self, live_info: LiveInfo) -> list[Condition]:
+    def list_conditions(self, live_info: LiveInfo) -> list[Condition]:
         """ 返回符合条件的额外条件
 
         :param live_info: 直播信息
         :return: 符合条件的额外条件
         """
-        conditions = []
+        result = []
         for condition in self.conditions:
             try:
                 if re.search(pattern=condition.regexp, string=live_info.__getattribute__(condition.item)):
-                    conditions.append(condition)
+                    result.append(condition)
             except AttributeError as e:
                 logging.error(e)
-        return conditions
+        return result
 
     def set_channel(self, channel_str: str) -> None:
         """ 设置频道
@@ -158,9 +148,9 @@ class RoomConfig:
             self.channel = (channels[0], channels[1])
 
 
+@overload
 class LiveInfo:
     """ 直播信息
-
     Fields:
         room_id: 直播间长号
         short_id: 直播间短号
@@ -192,20 +182,19 @@ class LiveInfo:
 
 class VideoInfo:
     """ 视频信息
-
     Fields:
-        tags: 视频标签
+        title: 视频标题
         description: 视频描述
         dynamic: 视频动态
-        title: 视频标题
         tid: 视频频道id
+        tags: 视频标签
     """
-    tags: list[str]
+    title: str
     description: str
     dynamic: str
-    title: str
-    tid: int
+    tags: list[str]
     channel: (str, str)
+    tid: int
 
     def __init__(self, room_config: RoomConfig):
         self.description = room_config.description
