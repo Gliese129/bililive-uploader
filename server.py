@@ -3,7 +3,7 @@ import asyncio
 import os
 from concurrent.futures import ThreadPoolExecutor
 import multiprocessing
-from entity import GlobalConfig, RoomConfig, LiveInfo
+from models import GlobalConfig, RoomConfig, LiveInfo
 import logging
 import getopt
 import sys

@@ -2,10 +2,10 @@ import logging
 import os
 import re
 from datetime import datetime
-from typing import overload
-
+from typing import overload, Optional
 from utils import FileUtils
 from bilibili_api import Credential
+from utils.VideoUtils import get_total_time
 
 
 class LiveInfo:
@@ -57,6 +57,9 @@ class GlobalConfig:
         if self.auto_upload:
             self.credential = Credential(**config['account']['credential'])
         self.min_time = config['recorder'].get('min-time') or 0
+
+    def get_config(self, name: str) -> str:
+        return os.path.join(self.work_dir, 'config', name)
 
 
 class Condition:
@@ -115,7 +118,7 @@ class RoomConfig:
         self.channel = (channels[0], channels[1]) if len(channels) == 2 else None
 
     @classmethod
-    def get_config(cls, global_config: GlobalConfig, room_id: int) -> 'RoomConfig' or None:
+    def get_config(cls, global_config: GlobalConfig, room_id: int) -> Optional['RoomConfig']:
         config_dir = os.path.join(global_config.work_dir, 'config', 'room-config.yml')
         configs = FileUtils.YmlReader(config_dir)
         for room in configs['rooms']:
@@ -138,7 +141,7 @@ class RoomConfig:
                 logging.error(e)
         return result
 
-    def set_channel(self, channel_str: str) -> None:
+    def set_channel(self, channel_str: str):
         """ 设置频道
 
         :param channel_str: 频道(空格分割)
@@ -184,19 +187,22 @@ class VideoInfo:
     """ 视频信息
     Fields:
         title: 视频标题
+        videos: 视频列表(路径)
         description: 视频描述
         dynamic: 视频动态
         tid: 视频频道id
         tags: 视频标签
     """
     title: str
+    videos: list[str]
     description: str
     dynamic: str
     tags: list[str]
     channel: (str, str)
     tid: int
 
-    def __init__(self, room_config: RoomConfig):
+    def __init__(self, room_config: RoomConfig, videos: list[str]):
+        self.videos = videos
         self.description = room_config.description
         self.tags = room_config.tags
         self.dynamic = room_config.dynamic
@@ -206,3 +212,17 @@ class VideoInfo:
         if len(self.tags) == 0:
             return ''
         return ','.join(self.tags)
+
+    def get_time(self) -> int:
+        """获取视频总时长
+
+        :return: 总时长，单位s
+        """
+        return get_total_time(self.videos)
+
+    def set_channel(self, channel: str):
+        if channel is not None:
+            channel = channel.split(' ')
+            if len(channel) == 2:
+                self.channel = (channel[0], channel[1])
+
