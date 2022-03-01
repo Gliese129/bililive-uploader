@@ -85,11 +85,12 @@ class Uploader:
 
         # 如果都无配置，报错
         if self.video_info.channel is None:
-            logging.error(f'[{self.live_info.room_id}] {self.live_info.parent_area}-{self.live_info.child_area} -> ?')
+            logging.error('[%d] %s-%s -> ?',
+                          self.live_info.room_id, self.live_info.parent_area, self.live_info.child_area)
             raise Exception('No channel found!')
-        logging.debug(f'[{self.live_info.room_id}] '
-                      f'live channel: {self.live_info.parent_area}-{self.live_info.child_area} -> '
-                      f'video channel: {self.video_info.channel[0]}-{self.video_info.channel[1]}')
+        logging.debug('[%d] %s-%s -> %s-%s',
+                      self.live_info.room_id, self.live_info.parent_area, self.live_info.child_area,
+                      self.video_info.channel[0], self.video_info.channel[1])
 
     @staticmethod
     def set_pages(videos: list[str]) -> list[video_uploader.VideoUploaderPage]:
@@ -138,7 +139,7 @@ class Uploader:
         self.video_info.title = self.set_module(module_string=self.video_info.title)
         self.video_info.description = self.set_module(module_string=self.video_info.description)
         self.set_tags_and_channel()
-        logging.info(f'[{self.live_info.room_id}] fetching channel...')
+        logging.info('[%d] fetching channel...', self.live_info.room_id)
         tid = self.fetch_channel(*self.video_info.channel)
         meta = {
             'act_reserve_create': 0,
@@ -165,10 +166,10 @@ class Uploader:
         if len(pages) == 0:
             raise FileNotFoundError('no videos to upload')
         uploader = video_uploader.VideoUploader(pages=pages, meta=meta, credential=self.credential)
-        logging.info(f'[{self.live_info.room_id}] uploading...')
+        logging.info('[%d] uploading...', self.live_info.room_id)
         logging.debug(f'file info:\n'
                       f'title: {self.video_info.title}\n'
                       f'channel: {self.video_info.channel}\n'
                       f'tags: {self.video_info.get_tags()}')
         ids = await uploader.start()
-        logging.info(f'[{self.live_info.room_id}] upload finished, bvid=%s, aid=%s' % (ids['bvid'], ids['aid']))
+        logging.info('[%d] upload finished, bvid=%s, aid=%s', self.live_info.room_id, ids['bvid'], ids['aid'])

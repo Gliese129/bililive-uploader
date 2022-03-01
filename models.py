@@ -28,6 +28,7 @@ class GlobalConfig:
     """
     record_dir: str
     work_dir: str
+    config_dir: str
     delete: bool
     port: int
     webhooks: list[str]
@@ -36,12 +37,13 @@ class GlobalConfig:
     auto_upload: bool
     min_time: int
     credential: Credential
+    docker: bool
 
     def __init__(self, work_dir: str):
-        config_dir = os.path.join(work_dir, 'config')
-        config = FileUtils.YmlReader(os.path.join(config_dir, 'global-config.yml'))
-        is_docker = config['recorder'].get('is-docker') or False
-        if is_docker:
+        self.config_dir = os.path.join(work_dir, 'config')
+        config = FileUtils.YmlReader(os.path.join(self.config_dir, 'global-config.yml'))
+        self.docker = config['recorder'].get('is-docker', default=False)
+        if self.docker:
             self.record_dir = '/record'
             self.work_dir = '/process'
             self.port = 8866
@@ -49,14 +51,14 @@ class GlobalConfig:
             self.record_dir = config['recorder']['recorder-dir']
             self.work_dir = work_dir
             self.port = config['server']['port']
-        self.delete = config['recorder'].get('delete-after-upload') is not False
-        self.webhooks = config['server'].get('webhooks') or []
-        self.workers = config['recorder'].get('workers') or 1
-        self.multipart = config['recorder'].get('multipart') is True
-        self.auto_upload = config['recorder'].get('auto-upload') is not False
+        self.delete = config['recorder'].get('delete-after-upload', default=True)
+        self.webhooks = config['server'].get('webhooks', default=[])
+        self.workers = config['recorder'].get('workers', default=1)
+        self.multipart = config['recorder'].get('multipart', default=False)
+        self.auto_upload = config['recorder'].get('auto-upload', default=True)
         if self.auto_upload:
             self.credential = Credential(**config['account']['credential'])
-        self.min_time = config['recorder'].get('min-time') or 0
+        self.min_time = config['recorder'].get('min-time', default=0)
 
     def get_config(self, name: str) -> str:
         return os.path.join(self.work_dir, 'config', name)
@@ -80,9 +82,9 @@ class Condition:
     def __init__(self, config: dict):
         self.item = config['item']
         self.regexp = str(config['regexp'])
-        self.process = config.get('process') is not False
-        self.tags = (config.get('tags') or '').split(',')
-        channels = (config.get('channel') or '').split(' ')
+        self.process = config.get('process', default=True)
+        self.tags = config.get('tags', default='').split(',')
+        channels = config.get('channel', default='').split()
         self.channel = (channels[0], channels[1]) if len(channels) == 2 else None
 
 
@@ -109,18 +111,18 @@ class RoomConfig:
         default_desc = '本录播由@_Gliese_的脚本自动处理上传'
 
         self.id = config['id']
-        self.title = config.get('title') or '{title}'
-        self.description = config.get('description') or default_desc
-        self.dynamic = config.get('dynamic') or ''
-        self.tags = (config.get('tags') or '').split(',')
-        self.conditions = [Condition(c) for c in config.get('conditions') or []]
-        channels = (config.get('channel') or '').split(' ')
+        self.title = config.get('title', default='{title}')
+        self.description = config.get('description', default=default_desc)
+        self.dynamic = config.get('dynamic', default='')
+        self.tags = config.get('tags', default='').split(',')
+        self.conditions = [Condition(c) for c in config.get('conditions', default=[])]
+        channels = config.get('channel', default='').split()
         self.channel = (channels[0], channels[1]) if len(channels) == 2 else None
 
     @classmethod
     def get_config(cls, global_config: GlobalConfig, room_id: int) -> Optional['RoomConfig']:
-        config_dir = os.path.join(global_config.work_dir, 'config', 'room-config.yml')
-        configs = FileUtils.YmlReader(config_dir)
+        room_config_dir = os.path.join(global_config.config_dir, 'room-config.yml')
+        configs = FileUtils.YmlReader(room_config_dir)
         for room in configs['rooms']:
             if int(room['id']) == room_id:
                 return cls(room)
@@ -137,8 +139,8 @@ class RoomConfig:
             try:
                 if re.search(pattern=condition.regexp, string=live_info.__getattribute__(condition.item)):
                     result.append(condition)
-            except AttributeError as e:
-                logging.error(e)
+            except AttributeError as _:
+                logging.error('Invalid condition: %s', condition.item)
         return result
 
     def set_channel(self, channel_str: str):
@@ -146,7 +148,7 @@ class RoomConfig:
 
         :param channel_str: 频道(空格分割)
         """
-        channels = channel_str.split(' ')
+        channels = channel_str.split()
         if len(channels) == 2:
             self.channel = (channels[0], channels[1])
 
@@ -222,7 +224,6 @@ class VideoInfo:
 
     def set_channel(self, channel: str):
         if channel is not None:
-            channel = channel.split(' ')
+            channel = channel.split()
             if len(channel) == 2:
                 self.channel = (channel[0], channel[1])
-

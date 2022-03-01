@@ -1,6 +1,4 @@
-# -*- coding: utf-8 -*-
 import json
-import logging
 import os
 import yaml
 from shutil import copy, rmtree
@@ -92,15 +90,15 @@ def DeleteFolder(folder: str) -> None:
         rmtree(folder)
 
 
-def DeleteFiles(files: list[str], types: list[str]) -> None:
+def DeleteFiles(file_stems: list[str], types: list[str]) -> None:
     """ Delete files
 
-    :param files: files need to delete(no extension)
+    :param file_stems: files need to delete(no extension)
     :param types: file extensions
     :return: None
     """
-    for file in files:
+    for file_stem in file_stems:
         for file_type in types:
-            if os.path.exists(file + '.' + file_type):
-                delete_file = f'{file}.{file_type}'
-                os.remove(delete_file)
+            if os.path.exists(file_stem + '.' + file_type):
+                file = f'{file_stem}.{file_type}'
+                os.remove(file)
