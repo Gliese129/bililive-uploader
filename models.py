@@ -5,7 +5,6 @@ from datetime import datetime
 from typing import overload, Optional
 from utils import FileUtils
 from bilibili_api import Credential
-from utils.VideoUtils import get_total_time
 
 
 class LiveInfo:
@@ -214,13 +213,6 @@ class VideoInfo:
         if len(self.tags) == 0:
             return ''
         return ','.join(self.tags)
-
-    def get_time(self) -> int:
-        """获取视频总时长
-
-        :return: 总时长，单位s
-        """
-        return get_total_time(self.videos)
 
     def set_channel(self, channel: str):
         if channel is not None:

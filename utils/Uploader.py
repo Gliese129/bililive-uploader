@@ -50,10 +50,10 @@ class Uploader:
         :exception No channel found
         """
         global_config: GlobalConfig = app.ctx.global_config
-        # room_config中的channel和tags配置
+        # room_config
         self.video_info.channel = self.room_config.channel
         self.video_info.tags = self.room_config.tags
-        # live2video中查找channel
+        # live2video
 
         def get_live2video_channel(live2video: dict) -> Optional[tuple[str, str]]:
             def to_channel(channel: str) -> Optional[tuple[str, str]]:
@@ -76,14 +76,14 @@ class Uploader:
         if result is not None:
             self.video_info.channel = result
 
-        # condition中中的channel，tags配置
+        # condition
         conditions = self.room_config.list_conditions(live_info=self.live_info)
         for condition in conditions:
             self.video_info.tags.extend(condition.tags)
             if condition.channel is not None:
                 self.video_info.channel = condition.channel
 
-        # 如果都无配置，报错
+        # no config
         if self.video_info.channel is None:
             logging.error('[%d] %s-%s -> ?',
                           self.live_info.room_id, self.live_info.parent_area, self.live_info.child_area)

@@ -45,21 +45,21 @@ async def processor(request):
     return text('done')
 
 
-@app.route('/video-upload')
+@app.route('/upload')
 async def uploader(_):
-    logging.info('received request: record upload')
+    logging.info('uploading videos')
     # copy upload_queue to video_queue
     upload_queue = app.ctx.upload_queue
-    video_queue = upload_queue.copy()
+    _queue = upload_queue.copy()
     upload_queue.clear()
     # upload videos in video_queue
-    while not video_queue.empty():
-        video_info = video_queue.get()
-        live_info: LiveInfo = video_info['live_info']
+    while not _queue.empty():
+        info = _queue.get()
+        live_info: LiveInfo = info['live_info']
         credential = app.ctx.global_config.credential
         app.add_task(app.dispatch(f'record.upload.{live_info.room_id}', context={
             'credential': credential,
-            'video_info': video_info,
+            'info': info,
             'room_config': RoomConfig.get_config(global_config, live_info.room_id)
         }))
     return text('done')

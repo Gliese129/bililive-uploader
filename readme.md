@@ -26,11 +26,11 @@ server:
 
 **程序启动后config目录下会出现live2video.json，请勿删除**
 
-**请在B站录播姬webhook v2 中加上[http://${your host}//video-process]()**
+**请在B站录播姬webhook v2 中加上[http://${your host}//process]()**
 ### 上传视频
 
 处理完的录播将会放入上传队列等待上传，
-此时需要向[http://{your host}:{your port}/video-upload]()发送get请求
+此时需要向[http://{your host}:{your port}/upload]()发送get请求
 
 如果设置了自动上传，将会在视频处理完后自动发送请求
 
@@ -48,6 +48,7 @@ recorder:
   workers:  # 同时进行的处理视频任务数量*2
   mulipart:  # 视频是否多p(使用web接口，粉丝数不足时会无法成功上传，请注意)， 默认false
   auto-upload:  # 是否自动上传，默认true
+  min-time
 server:
   port: # 运行端口
   webhooks: # webhook, 在视频处理完成后触发
@@ -80,8 +81,8 @@ User-Agent: Record Uploader
     "AreaNameParent": "生活",
     "AreaNameChild": "影音馆"
   },
-  "ProceedVideos": ["C:/proceed dir/out1.flv", "C:/proceed dir/out2.flv"],
-  "WorkDictionary": "C:/proceed dir"
+  "ProceedVideos": ["/session-id/out1.flv", "/session-id/out2.flv"],
+  "WorkDictionary": "C://work-dir"
 }
 ~~~
 #### room-config.yml

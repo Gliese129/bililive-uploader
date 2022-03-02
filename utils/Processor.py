@@ -103,13 +103,14 @@ class Processor:
         FileUtils.WriteDict(path=consts.Paths().VIDEO_CACHE, obj=rooms)
         # relative path ---(if exists)---> absolute path
         self.origin_stems = [os.path.join(self.recorder_dir, video) for video in self.origin_stems if
-                              os.path.exists(os.path.join(self.recorder_dir, video + '.flv'))]
+                             os.path.exists(os.path.join(self.recorder_dir, video + '.flv'))]
 
     def check_if_need_process(self) -> bool:
         """ 检查是否需要处理
 
         :return: 是否需要处理
         """
+        from utils.VideoUtils import get_total_time
         # check if videos exist
         if len(self.origin_stems) == 0:
             logging.info('[%d] no videos exist', self.live_info.room_id)
@@ -126,12 +127,20 @@ class Processor:
                 logging.debug('details:  item: %s, regexp: %s',
                               condition.item, condition.regexp)
                 return False
+        # check total time
+        videos = [f'{stem}.flv' for stem in self.origin_stems]
+        total_time = get_total_time(videos)
+        global_config: GlobalConfig = app.ctx.global_config
+        if total_time < global_config.min_time:
+            logging.info('[%d] total time is too short', self.live_info.room_id)
+            return False
         return True
 
-    async def process(self, multipart: bool = False):
+    async def process(self, multipart: bool = False) -> list[str]:
         """ 处理视频
 
         :param multipart: 是否多part
+        :return: 处理后的视频列表
         """
         # copy files to process dir
         if os.path.exists(self.process_dir):
@@ -155,6 +164,11 @@ class Processor:
             await self.run_shell(command=command, prefix='ffmpeg')
             DeleteFiles(file_stems=self.process_stems, types=['flv'])
             self.process_stems = [os.path.join(self.process_dir, 'record')]
+        # process videos
+        logging.info('[%d] mixing damaku into videos...', self.live_info.room_id)
+        result_videos = await self.composite()
+        logging.info('[%d] successfully proceed %d video(s)', self.live_info.room_id, len(result_videos))
+        return result_videos
 
     async def make_damaku(self, multipart: bool = False):
         """ 处理弹幕文件
