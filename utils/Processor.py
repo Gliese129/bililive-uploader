@@ -65,7 +65,7 @@ class Processor:
         rooms = FileUtils.ReadJson(consts.Paths().VIDEO_CACHE)
         room_id = str(room_id)
         file_path = file_path.replace('.flv', '')
-        room = rooms.get(room_id, default=[])
+        room = rooms.get(room_id, [])
         room.append(file_path)
         rooms[room_id] = room
         FileUtils.WriteDict(path=consts.Paths().VIDEO_CACHE, obj=rooms)

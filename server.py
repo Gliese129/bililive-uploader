@@ -27,6 +27,7 @@ async def processor(request):
     event_type = request_body['EventType']
     event_data = request_body['EventData']
     room_id = int(event_data['RoomId'])
+    short_id = int(event_data['ShortId'])
 
     if event_type == 'SessionStarted':
         logging.info('[%d] session started', room_id)
@@ -40,7 +41,7 @@ async def processor(request):
         logging.info('[%d] session ended', room_id)
         app.ctx.process_pool.submit(asyncio.run, app.dispatch(f'session.end.{room_id}', context={
             'event_data': event_data,
-            'room_config': RoomConfig.get_config(global_config, room_id)
+            'room_config': RoomConfig.get_config(global_config, room_id, short_id)
         }))
     return text('done')
 
@@ -50,8 +51,9 @@ async def uploader(_):
     logging.info('uploading videos')
     # copy upload_queue to video_queue
     upload_queue = app.ctx.upload_queue
-    _queue = upload_queue.copy()
-    upload_queue.clear()
+    _queue = queue.Queue()
+    while upload_queue.qsize() > 0:
+        _queue.put(upload_queue.get())
     # upload videos in video_queue
     while not _queue.empty():
         info = _queue.get()
@@ -60,7 +62,7 @@ async def uploader(_):
         app.add_task(app.dispatch(f'record.upload.{live_info.room_id}', context={
             'credential': credential,
             'info': info,
-            'room_config': RoomConfig.get_config(global_config, live_info.room_id)
+            'room_config': RoomConfig.get_config(global_config, live_info.room_id, live_info.short_id)
         }))
     return text('done')
 

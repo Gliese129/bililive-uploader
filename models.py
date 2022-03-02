@@ -7,6 +7,7 @@ from utils import FileUtils
 from bilibili_api import Credential
 
 
+@overload
 class LiveInfo:
     pass
 
@@ -41,7 +42,7 @@ class GlobalConfig:
     def __init__(self, work_dir: str):
         self.config_dir = os.path.join(work_dir, 'config')
         config = FileUtils.YmlReader(os.path.join(self.config_dir, 'global-config.yml'))
-        self.docker = config['recorder'].get('is-docker', default=False)
+        self.docker = config['recorder'].get('is-docker', False)
         if self.docker:
             self.record_dir = '/record'
             self.work_dir = '/process'
@@ -50,14 +51,14 @@ class GlobalConfig:
             self.record_dir = config['recorder']['recorder-dir']
             self.work_dir = work_dir
             self.port = config['server']['port']
-        self.delete = config['recorder'].get('delete-after-upload', default=True)
-        self.webhooks = config['server'].get('webhooks', default=[])
-        self.workers = config['recorder'].get('workers', default=1)
-        self.multipart = config['recorder'].get('multipart', default=False)
-        self.auto_upload = config['recorder'].get('auto-upload', default=True)
+        self.delete = config['recorder'].get('delete-after-upload', True)
+        self.webhooks = config['server'].get('webhooks', [])
+        self.workers = config['recorder'].get('workers', 1)
+        self.multipart = config['recorder'].get('multipart', False)
+        self.auto_upload = config['recorder'].get('auto-upload', True)
         if self.auto_upload:
             self.credential = Credential(**config['account']['credential'])
-        self.min_time = config['recorder'].get('min-time', default=0)
+        self.min_time = eval(str(config['recorder'].get('min-time', 0)))
 
     def get_config(self, name: str) -> str:
         return os.path.join(self.work_dir, 'config', name)
@@ -81,9 +82,9 @@ class Condition:
     def __init__(self, config: dict):
         self.item = config['item']
         self.regexp = str(config['regexp'])
-        self.process = config.get('process', default=True)
-        self.tags = config.get('tags', default='').split(',')
-        channels = config.get('channel', default='').split()
+        self.process = config.get('process', True)
+        self.tags = config.get('tags', '').split(',')
+        channels = config.get('channel', '').split()
         self.channel = (channels[0], channels[1]) if len(channels) == 2 else None
 
 
@@ -110,20 +111,20 @@ class RoomConfig:
         default_desc = '本录播由@_Gliese_的脚本自动处理上传'
 
         self.id = config['id']
-        self.title = config.get('title', default='{title}')
-        self.description = config.get('description', default=default_desc)
-        self.dynamic = config.get('dynamic', default='')
-        self.tags = config.get('tags', default='').split(',')
-        self.conditions = [Condition(c) for c in config.get('conditions', default=[])]
-        channels = config.get('channel', default='').split()
+        self.title = config.get('title', '{title}')
+        self.description = config.get('description', default_desc)
+        self.dynamic = config.get('dynamic', '')
+        self.tags = config.get('tags', '').split(',')
+        self.conditions = [Condition(c) for c in config.get('conditions', [])]
+        channels = config.get('channel', '').split()
         self.channel = (channels[0], channels[1]) if len(channels) == 2 else None
 
     @classmethod
-    def get_config(cls, global_config: GlobalConfig, room_id: int) -> Optional['RoomConfig']:
+    def get_config(cls, global_config: GlobalConfig, room_id: int, short_id: int = 0) -> Optional['RoomConfig']:
         room_config_dir = os.path.join(global_config.config_dir, 'room-config.yml')
         configs = FileUtils.YmlReader(room_config_dir)
         for room in configs['rooms']:
-            if int(room['id']) == room_id:
+            if int(room['id']) == room_id or int(room['id']) == short_id:
                 return cls(room)
         return None
 
@@ -152,7 +153,6 @@ class RoomConfig:
             self.channel = (channels[0], channels[1])
 
 
-@overload
 class LiveInfo:
     """ 直播信息
     Fields:
