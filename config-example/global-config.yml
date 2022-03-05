@@ -1,10 +1,11 @@
 recorder:
-  recorder-dir:  # 录播姬工作目录
-  delete-after-upload:  # 是否在上传完成后删除
+  record-dir:  # 录播姬工作目录
+  delete-after-upload:  # 是否在上传完成后删除, 默认为true
   is-docker:  # 是否使用docker，默认false
   workers:  # 处理视频线程数
   multipart:  # 视频是否多p(取决于web接口，可能会导致视频上传失败), 默认false
   auto-upload:  # 是否自动上传，默认true
+  min-time:  # 最短录播时间m，单位为s，默认0s，支持表达式
 
 server:
   port: # 运行端口
