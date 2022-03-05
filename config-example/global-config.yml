@@ -1,5 +1,5 @@
 recorder:
-  recorder-dir:  # 录播姬工作目录
+  record-dir:  # 录播姬工作目录
   delete-after-upload:  # 是否在上传完成后删除, 默认为true
   is-docker:  # 是否使用docker，默认false
   workers:  # 处理视频线程数

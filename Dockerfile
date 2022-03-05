@@ -42,6 +42,10 @@ COPY ./utils /app/utils
 COPY ./resources/channel.json /app/resources/channel.json
 COPY ./resources/live2video.json /app/resources/live2video.json
 
+VOLUME /record
+VOLUME /process
+EXPOSE 8866
+
 WORKDIR /app
 
 RUN pip3 install --upgrade -r requirements.txt

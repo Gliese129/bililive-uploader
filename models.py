@@ -48,7 +48,7 @@ class GlobalConfig:
             self.work_dir = '/process'
             self.port = 8866
         else:
-            self.record_dir = config['recorder']['recorder-dir']
+            self.record_dir = config['recorder']['record-dir']
             self.work_dir = work_dir
             self.port = config['server']['port']
         self.delete = config['recorder'].get('delete-after-upload', True)

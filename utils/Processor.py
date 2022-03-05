@@ -148,12 +148,11 @@ class Processor:
         logging.info('[%d] moving files to dictionary %s...', self.live_info.room_id, self.process_dir)
         self.process_stems = FileUtils.CopyFiles(files=self.origin_stems, target=self.process_dir, types=['flv', 'xml'])
         # make danmaku
-        logging.info('[%d] converting danmaku files...', self.live_info.room_id)
         await self.make_damaku(multipart)
         # preprocess videos
         if not multipart:
             # combine all videos to record.flv
-            logging.info('[%s] combine all videos to record.flv', self.live_info.room_id)
+            logging.info('[%d] combine all videos to record.flv', self.live_info.room_id)
             files = ''
             for video in self.process_stems:
                 files += f"file '{video}.flv'\n"
@@ -165,15 +164,15 @@ class Processor:
             DeleteFiles(file_stems=self.process_stems, types=['flv'])
             self.process_stems = [os.path.join(self.process_dir, 'record')]
         # process videos
-        logging.info('[%d] mixing damaku into videos...', self.live_info.room_id)
         result_videos = await self.composite()
-        logging.info('[%d] successfully proceed %d video(s)', self.live_info.room_id, len(result_videos))
+        logging.info('[%d] proceed %d video(s)', self.live_info.room_id, len(result_videos))
         return result_videos
 
     async def make_damaku(self, multipart: bool = False):
         """ 处理弹幕文件
 
         """
+        logging.info('[%d] converting danmaku files...', self.live_info.room_id)
         command = ''
         if multipart:
             # generate ass by each xml file
@@ -193,6 +192,7 @@ class Processor:
 
         :return: 处理后的视频文件
         """
+        logging.info('[%d] mixing damaku into videos...', self.live_info.room_id)
         # set shell command
         command = ''
         results = []
@@ -207,5 +207,4 @@ class Processor:
                 command += f'{consts.Paths().FFMPEG} -i "{record_stem}.flv" -c copy "{output}"\n'
         # run shell command
         await self.run_shell(command=command, prefix='ffmpeg')
-        logging.info('[%d] processed %d videos', self.live_info.room_id, len(results))
         return results

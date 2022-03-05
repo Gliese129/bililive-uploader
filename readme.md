@@ -8,7 +8,7 @@ python server.py -w ${work dir}
 
 #### docker 启动
 ~~~ commandline
-docker run -d -p ${port-outside}:8866 -v ${work-dir}:/process -v ${bililive-recorder-path}:/recorder --name record-uploader gliese129/record-uploader:latest
+docker run -d -p ${port-outside}:8866 -v ${work-dir}:/process -v ${bililive-recorder-path}:/record --name record-uploader gliese129/record-uploader:latest
 ~~~
 ~~~ yaml
 # 请确保 global-config.yml 中:
@@ -17,7 +17,7 @@ recorder:
    
 # 此时下面的字段将没有意义
 recorder:
-   recorder-dir: /recorder
+   recorder-dir: /record
 server:
    port: 8866
 ~~~
@@ -42,13 +42,13 @@ server:
 #### global-config.yml
 ~~~ yaml
 recorder:
-  recorder-dir:  # 录播姬工作目录
+  record-dir:  # 录播姬工作目录
   delete-after-upload:  # 是否在上传完成后删除*1
   is-docekr:  # 是否在docker中运行
   workers:  # 同时进行的处理视频任务数量*2
   mulipart:  # 视频是否多p(使用web接口，粉丝数不足时会无法成功上传，请注意)， 默认false
   auto-upload:  # 是否自动上传，默认true
-  min-time
+  min-time:  # 最短录播时间m，单位为s，默认0s，支持表达式
 server:
   port: # 运行端口
   webhooks: # webhook, 在视频处理完成后触发
