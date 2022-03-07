@@ -6,6 +6,7 @@ from bilibili_api import video_uploader, Credential
 from sanic import Sanic
 from utils import FileUtils
 from models import RoomConfig, LiveInfo, VideoInfo, GlobalConfig
+from exceptions import *
 
 app = Sanic.get_app()
 
@@ -56,7 +57,7 @@ class Uploader:
         # live2video
 
         def get_live2video_channel(live2video: dict) -> (str, str):
-            def to_channel(channel: str) -> Optional[(str, str)]:
+            def to_channel(channel: str) -> Optional[tuple[str, str]]:
                 channel = channel.split(' ')
                 if len(channel) == 2:
                     return channel[0], channel[1]
@@ -88,7 +89,7 @@ class Uploader:
         if self.video_info.channel is None:
             logging.error('[%d] %s-%s -> ?',
                           self.live_info.room_id, self.live_info.parent_area, self.live_info.child_area)
-            raise Exception('No channel found!')
+            raise InvalidParamException('No channel found!')
         logging.debug('[%d] %s-%s -> %s-%s',
                       self.live_info.room_id, self.live_info.parent_area, self.live_info.child_area,
                       self.video_info.channel[0], self.video_info.channel[1])
@@ -120,7 +121,7 @@ class Uploader:
         :param child_area: 子区域
         :return: 分区id
         """
-        channel = FileUtils.ReadJson(path='../resources/channel.json')
+        channel = FileUtils.ReadJson(path='./resources/channel.json')
         tid = 0
         for main_ch in channel:
             if main_ch['name'] == parent_area:
@@ -136,8 +137,8 @@ class Uploader:
         :exception No video found
         :return: 是否上传成功
         """
-        self.video_info.title = self.set_module(module_string=self.video_info.title)
-        self.video_info.description = self.set_module(module_string=self.video_info.description)
+        self.video_info.title = self.set_module(self.video_info.title)
+        self.video_info.description = self.set_module(self.video_info.description)
         self.set_tags_and_channel()
         logging.info('[%d] fetching channel...', self.live_info.room_id)
         tid = self.fetch_channel(*self.video_info.channel)

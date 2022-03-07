@@ -9,6 +9,8 @@ disable=
     too-many-public-methods,
     too-many-instance-attributes,
     eval-used,
-    import-error
+    import-error,
+    undefined-variable,
+    wildcard-import,
 
 max-line-length=150
