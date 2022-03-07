@@ -55,11 +55,12 @@ class Uploader:
         self.video_info.tags = self.room_config.tags
         # live2video
 
-        def get_live2video_channel(live2video: dict) -> Optional[tuple[str, str]]:
-            def to_channel(channel: str) -> Optional[tuple[str, str]]:
+        def get_live2video_channel(live2video: dict) -> (str, str):
+            def to_channel(channel: str) -> Optional[(str, str)]:
                 channel = channel.split(' ')
                 if len(channel) == 2:
                     return channel[0], channel[1]
+                return None
             for parent_area in live2video:
                 if parent_area.get('name') == self.live_info.parent_area:
                     # 直播父分区可以直接对应频道
@@ -83,7 +84,7 @@ class Uploader:
             if condition.channel is not None:
                 self.video_info.channel = condition.channel
 
-        # no config
+        # no channel
         if self.video_info.channel is None:
             logging.error('[%d] %s-%s -> ?',
                           self.live_info.room_id, self.live_info.parent_area, self.live_info.child_area)
@@ -100,12 +101,11 @@ class Uploader:
         :return: 分页
         """
         pages = []
-        index = 0
-        for video in videos:
+        for index, video in enumerate(videos):
             if os.path.exists(video) and os.path.getsize(video) > 0:
                 page_info = {
                     'path': video,
-                    'title': f'part{++index}',
+                    'title': f'part{index + 1}',
                     'description': ''
                 }
                 page = video_uploader.VideoUploaderPage(**page_info)
@@ -144,7 +144,7 @@ class Uploader:
         meta = {
             'act_reserve_create': 0,
             'copyright': 2,
-            'source': 'https://live.bilibili.com/%d' % self.live_info.room_id,
+            'source': f'https://live.bilibili.com/{self.live_info.room_id}',
             'desc': self.video_info.description,
             'dynamic': self.video_info.dynamic,
             'interactive': 0,
@@ -167,9 +167,7 @@ class Uploader:
             raise FileNotFoundError('no videos to upload')
         uploader = video_uploader.VideoUploader(pages=pages, meta=meta, credential=self.credential)
         logging.info('[%d] uploading...', self.live_info.room_id)
-        logging.debug(f'file info:\n'
-                      f'title: {self.video_info.title}\n'
-                      f'channel: {self.video_info.channel}\n'
-                      f'tags: {self.video_info.get_tags()}')
+        logging.debug('file info:\ntitle: %s\nchannel: %s\ntags: %s',
+                      self.video_info.title, self.video_info.channel, self.video_info.get_tags())
         ids = await uploader.start()
         logging.info('[%d] upload finished, bvid=%s, aid=%s', self.live_info.room_id, ids['bvid'], ids['aid'])

@@ -32,7 +32,7 @@ def file_open(room_id: int, file_path: str):
     :param file_path: 录播文件路径
     :return:
     """
-    logging.debug(f'[%d] file path: %s', room_id, file_path)
+    logging.debug('[%d] file path: %s', room_id, file_path)
     Processor.file_open(room_id=room_id, file_path=file_path)
 
 
@@ -49,7 +49,7 @@ async def session_end(room_id: int, event_data: dict, room_config: RoomConfig):
     process = Processor(event_data=event_data, room_config=room_config)
     process.live_end()
     if process.check_if_need_process():
-        logging.info(f'[{room_id}] processing...')
+        logging.info('[%d] processing...', room_id)
         try:
             result_videos = await process.process(multipart=global_config.multipart)
         except FileExistsError as e:
@@ -124,7 +124,6 @@ async def send_webhook(url: str, event_data: dict, videos: list[str], work_dir: 
     for _ in range(3):
         with requests.post(url, json=request_body, headers=headers, timeout=100) as response:
             if response.status_code == 200:
-                logging.info(f'send webhook to {url} successfully')
+                logging.info('send webhook to %s successfully', url)
                 return
-            else:
-                logging.error('%d: %s', response.status_code, response.reason)
+            logging.error('%d: %s', response.status_code, response.reason)
