@@ -83,8 +83,8 @@ class Processor:
                 stdoutdata = stdoutdata.decode('utf-8')
                 stderrdata = stderrdata.decode('utf-8')
             except UnicodeError:
-                stdoutdata = stdoutdata.decode()
-                stderrdata = stderrdata.decode()
+                stdoutdata = stdoutdata.decode(errors='ignore')
+                stderrdata = stderrdata.decode(errors='ignore')
         return stdoutdata, stderrdata
 
     def live_end(self):
