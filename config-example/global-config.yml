@@ -1,0 +1,20 @@
+bot:
+  rec-dir:  # 录播姬工作目录
+  is-docker:  # 是否使用docker，默认false
+  workers:  # 处理视频线程数
+
+  upload:
+    multipart:  # 视频是否多p(取决于web接口，可能会导致视频上传失败), 默认false
+    delete-after-upload:  # 是否在上传完成后删除, 默认为true
+    auto-upload:  # 是否自动上传，默认true
+    min-time:  # 最短录播时间，单位为s，默认0s，支持表达式
+
+  server:
+    port: # 运行端口
+    webhooks: # webhook, 在上传完成后触发
+
+account:
+  credential:   # 账户凭据, 详见 https://bili.moyu.moe/#/get-credential
+    sessdata:
+    bili_jct:
+    buvid3:
