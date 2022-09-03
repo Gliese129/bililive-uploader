@@ -157,8 +157,14 @@ class RoomConfig:
 
     @classmethod
     def init(cls, config_dir: str, room_id: int, short_id: int = 0) -> Optional['RoomConfig']:
-        config = FileUtils.readYml(os.path.join(config_dir, 'room-config.yml'))
-        return [cls(c) for c in config]
+        path = os.path.join(config_dir, 'room-config.yml')
+        configs = FileUtils.readYml(path)
+        for room in configs['rooms']:
+            if int(room['id']) in (room_id, short_id):
+                return cls(room)
+
+    def list_conditions(self) -> list[Condition]:
+        return self.conditions
 
 
 
