@@ -1,42 +1,17 @@
 import os.path
 import functools
-from typing import Union, Optional
+import re
+from typing import Optional
 
 from exceptions import *
 from bilibili_api import Credential
 
 from utils import FileUtils
+from .info import LiveInfo
+from .utils import _getValue, _setChannel
 
-
-def _getValue(data: dict, path: str, default=None):
-    """ get value from a dict
-    if not exists, return default value when default is not None,
-    otherwise throw ConfigNotCompleted exception
-
-    :param data:
-    :param path: in format of xx/xx/xx
-    :param default:
-    :return:
-    """
-    for p in path.split('/'):
-        if p in data:
-            data = data[p]
-        elif default is not None:
-            return default
-        else:
-            raise ConfigNotCompleted(path)
-    return data
-
-
-def _setChannel(self, data: Union[(str, str), str, list[str]]):
-    if isinstance(data, tuple) and len(data) == 2:
-        self._channel = data
-    elif isinstance(data, list) and len(data) == 2:
-        self._channel = tuple(data)
-    elif isinstance(data, str) and len(data.split()) == 2:
-        self._channel = tuple(data.split())
-    else:
-        self._channel = None
+logger = logging.getLogger('bililive-uploader')
+__all__ = ['BotConfig', 'RoomConfig']
 
 
 class BotConfig:
@@ -70,7 +45,7 @@ class BotConfig:
     config_dir = property(lambda self: os.path.join(self.work_dir, 'config'))
 
     def __init__(self, work_dir: str):
-        config = FileUtils.readYml(os.path.join(self.config_dir, 'global-config.yml'))
+        config = FileUtils.readYml(os.path.join(work_dir, 'config', 'global-config.yml'))
         get_value = functools.partial(_getValue, data=config)
 
         self.docker = get_value('bot/is-docker', False)
@@ -108,7 +83,7 @@ class Condition:
     item: str
     regexp: str
     tags: list[str]
-    _channel: (str, str)
+    _channel: (str, str) = None
     channel = property(lambda self: self._channel, _setChannel)
     process: bool
 
@@ -119,7 +94,6 @@ class Condition:
         self.process = get_value('process', True)
         self.tags = get_value('tags', '').split(',')
         self.channel = config.get('channel', '')
-
 
 
 class RoomConfig:
@@ -138,7 +112,7 @@ class RoomConfig:
     title: str
     description: str
     dynamic: str
-    _channel: (str, str)
+    _channel: (str, str) = None
     channel = property(lambda self: self._channel, _setChannel)
     tags: list[str]
     conditions: list[Condition]
@@ -156,15 +130,25 @@ class RoomConfig:
         self.channel = get_value('channel', '')
 
     @classmethod
-    def init(cls, config_dir: str, room_id: int, short_id: int = 0) -> Optional['RoomConfig']:
-        path = os.path.join(config_dir, 'room-config.yml')
+    def init(cls, work_dir: str, room_id: int, short_id: int = 0) -> Optional['RoomConfig']:
+        path = os.path.join(work_dir, 'config', 'room-config.yml')
         configs = FileUtils.readYml(path)
         for room in configs['rooms']:
             if int(room['id']) in (room_id, short_id):
                 return cls(room)
+        logger.warning('Unknown room: [id: %d] [short id: %d]', room_id, short_id)
 
-    def list_conditions(self) -> list[Condition]:
-        return self.conditions
+    def list_conditions(self, live_info: LiveInfo) -> list[Condition]:
+        """ list proper conditions
 
-
-
+        :param live_info
+        :return:
+        """
+        result = []
+        for condition in self.conditions:
+            try:
+                if re.search(pattern=condition.regexp, string=getattr(live_info, condition.item)):
+                    result.append(condition)
+            except AttributeError as _:
+                logger.warning('Invalid condition: %s', condition.item)
+        return result
