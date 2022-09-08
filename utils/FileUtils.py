@@ -10,7 +10,9 @@ def readYml(path: str) -> dict:
     return result
 
 
-def readJson(path: str) -> dict:
+def readJson(path: str, default=None) -> dict:
+    if not os.path.exists(path):
+        return default if default is not None else {}
     with open(path, 'r', encoding='utf-8') as f:
         result = json.load(f)
     return result

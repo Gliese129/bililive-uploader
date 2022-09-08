@@ -3,6 +3,9 @@ bot:
   is-docker:  # 是否使用docker，默认false
   workers:  # 处理视频线程数
 
+  process:
+    damaku:  # 是否压制弹幕，默认为true
+
   upload:
     multipart:  # 视频是否多p(取决于web接口，可能会导致视频上传失败), 默认false
     delete-after-upload:  # 是否在上传完成后删除, 默认为true

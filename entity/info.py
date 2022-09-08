@@ -1,5 +1,6 @@
 from datetime import datetime
 
+from utils import FileUtils
 from .utils import _setChannel
 
 __all__ = ['LiveInfo', 'VideoInfo']
@@ -35,6 +36,11 @@ class LiveInfo:
         self.parent_area = event_data['AreaNameParent']
         self.child_area = event_data['AreaNameChild']
         self.anchor = event_data['Name']
+
+    def read_start_time(self, json_file: str, room_id: int):
+        """ read session start time from json file(time cache) """
+        data = FileUtils.readJson(json_file)
+        self.start_time = datetime.fromisoformat(data[str(room_id)])
 
 
 class VideoInfo:

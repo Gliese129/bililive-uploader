@@ -22,6 +22,7 @@ class BotConfig:
         rec_dir: B站录播姬工作目录
         docker: 是否使用docker
         workers: 线程数
+        danmaku: 是否压制弹幕
         multipart: 是否多p
         delete: 是否上传后删除
         auto_upload: 是否自动上传
@@ -34,6 +35,7 @@ class BotConfig:
     rec_dir: str
     docker: bool
     workers: int
+    danmaku: bool
     multipart: bool
     delete: bool
     auto_upload: bool
@@ -58,6 +60,8 @@ class BotConfig:
             self.work_dir = work_dir
             self.port = get_value('bot/server/port', 8866)
 
+        self.workers = get_value('bot/workers', 1)
+        self.danmaku = get_value('bot/process/danmaku', True)
         self.multipart = get_value('bot/upload/multipart', False)
         self.delete = get_value('bot/upload/delete-after-upload', True)
         self.auto_upload = get_value('bot/upload/auto-upload', True)
