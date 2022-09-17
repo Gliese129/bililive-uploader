@@ -42,13 +42,16 @@ def writeDict(file: str, obj: dict):
         json.dump(obj, f)
 
 
-def copyFiles(files: list[str], target: str) -> list[str]:
+def copyFiles(files: list[str], target: str, output_with_folder=True) -> list[str]:
     if not os.path.exists(target):
         os.mkdir(target)
     new_files = []
     for file in files:
         copy(src=file, dst=target)
-        new_files.append(os.path.join(target, os.path.split(file)[1]))
+        if output_with_folder:
+            new_files.append(os.path.join(target, os.path.split(file)[1]))
+        else:
+            new_files.append(os.path.split(file)[1])
     return new_files
 
 
@@ -61,3 +64,8 @@ def deleteFiles(files: list[str]):
     for file in files:
         if os.path.exists(file):
             os.remove(file)
+
+
+def renameFile(file: str, new_name: str):
+    if os.path.exists(file):
+        os.rename(file, new_name)

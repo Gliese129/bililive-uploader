@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from datetime import datetime
 
 from utils import FileUtils
@@ -6,6 +7,7 @@ from .utils import _setChannel
 __all__ = ['LiveInfo', 'VideoInfo']
 
 
+@dataclass
 class LiveInfo:
     """
 
@@ -43,6 +45,7 @@ class LiveInfo:
         self.start_time = datetime.fromisoformat(data[str(room_id)])
 
 
+@dataclass
 class VideoInfo:
     """
 
@@ -59,9 +62,10 @@ class VideoInfo:
     description: str
     dynamic: str
     tags: list[str]
-    _channel: (str, str) = None
     channel = property(lambda self: self._channel, _setChannel)
     tid: int
+
+    _channel: (str, str) = None
 
     def __init__(self, room_config, videos: list[str]):
         self.videos = videos

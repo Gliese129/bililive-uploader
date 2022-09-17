@@ -19,7 +19,7 @@ def session_start(room_id: int, start_time: datetime):
     :param start_time:
     :return:
     """
-    logger.info('[%d] recording session started at %s', room_id, start_time.isoformat())
+    logger.info('Recording session started at %s', start_time.isoformat(), extra={'room_id': room_id})
     Process.session_start(room_id, start_time)
 
 
@@ -32,7 +32,7 @@ def file_open(room_id: int, file_path: str):
     :param file_path
     :return:
     """
-    logger.debug('[%d] writing record data to %s', room_id, file_path)
+    logger.debug('Writing record data to "%s"...', file_path, extra={'room_id': room_id})
     Process.file_open(room_id, file_path)
 
 
@@ -46,6 +46,12 @@ def session_end(room_id: int, event_data: dict, room_config: RoomConfig):
     :param room_config
     :return:
     """
-    logger.info('[%d] recording session ended, start processing...', room_id)
+    logger.info('Recording session ended.', extra={'room_id': room_id})
     bot_config: BotConfig = app.ctx.bot_config
     processor = Process(event_data, room_config)
+    processor.live_end()
+    if processor.need_process:
+        logger.info('Processing...', extra={'room_id': room_id})
+
+    else:
+        logger.info('No need to process.', extra={'room_id': room_id})

@@ -9,7 +9,7 @@ from queue import Queue
 from sanic import Sanic
 
 from entity import BotConfig
-from init import init_logger
+from logger import init_logger
 from utils import FileUtils
 
 app = Sanic('bililive-uploader')
@@ -25,6 +25,9 @@ def init(*_):
     app.ctx.upload_queue = Queue()
     app.config.TIME_CACHE_PATH = './cache/time.json'
     app.config.VIDEO_CACHE_PATH = './cache/videos.json'
+    app.config.FFMPEG_PATH = 'ffmpeg' if bot_config.docker else 'resources\\ffmpeg'
+    app.config.DANMAKU_FACTORY_PATH = '/DanmakuFactory/DanmakuFactory' \
+                                      if bot_config.docker else 'resources\\DanmakuFactory'
 
 
 @app.on_request

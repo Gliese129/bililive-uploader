@@ -1,6 +1,7 @@
 import os.path
 import functools
 import re
+from dataclasses import dataclass
 from typing import Optional
 
 from exceptions import *
@@ -14,6 +15,7 @@ logger = logging.getLogger('bililive-uploader')
 __all__ = ['BotConfig', 'RoomConfig']
 
 
+@dataclass
 class BotConfig:
     """
 
@@ -74,6 +76,7 @@ class BotConfig:
             self.credential = Credential(**credential)
 
 
+@dataclass
 class Condition:
     """ extra conditions for each room
 
@@ -87,9 +90,10 @@ class Condition:
     item: str
     regexp: str
     tags: list[str]
-    _channel: (str, str) = None
     channel = property(lambda self: self._channel, _setChannel)
     process: bool
+
+    _channel: (str, str) = None
 
     def __init__(self, config: dict):
         get_value = functools.partial(_getValue, data=config)
@@ -100,6 +104,7 @@ class Condition:
         self.channel = config.get('channel', '')
 
 
+@dataclass
 class RoomConfig:
     """
 
@@ -116,22 +121,26 @@ class RoomConfig:
     title: str
     description: str
     dynamic: str
-    _channel: (str, str) = None
     channel = property(lambda self: self._channel, _setChannel)
     tags: list[str]
     conditions: list[Condition]
 
+    _channel: (str, str) = None
+
     def __init__(self, config: dict):
-        default_desc = '本录播由@_Gliese_的脚本自动处理上传'
         get_value = functools.partial(_getValue, data=config)
 
         self.id = get_value('id')
         self.title = get_value('title', '{title}')
-        self.description = get_value('description', default_desc)
+        self.description = get_value('description', '')
         self.dynamic = get_value('dynamic', '')
         self.tags = get_value('tags', '').split(',')
         self.conditions = [Condition(c) for c in get_value('conditions', [])]
         self.channel = get_value('channel', '')
+
+    def __post_init__(self):
+        if not self.description:
+            self.description = '本录播由@_Gliese_的脚本自动处理上传'
 
     @classmethod
     def init(cls, work_dir: str, room_id: int, short_id: int = 0) -> Optional['RoomConfig']:
