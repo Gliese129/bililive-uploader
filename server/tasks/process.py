@@ -12,7 +12,7 @@ from .utils import *
 app = Sanic.get_app()
 logger = logging.getLogger('bililive-uploader')
 
-MERGED_NAME = 'record'
+TRANSFORMED_NAME = 'record'
 PROCESSED_PREFIX = 'result'
 
 
@@ -80,8 +80,8 @@ class Process:
     def generate_process_dir(self):
         room_id = self.live_info.room_id
         start_time = self.live_info.start_time
-        self.process_dir = os.path.join(self.folder, f'{room_id}_{start_time.strftime("%Y%m%d_%H%M%S")}')
-        os.makedirs(self.process_dir)
+        bot_config = app.ctx.bot_config
+        self.process_dir = os.path.join(bot_config.work_dir, f'{room_id}_{start_time.strftime("%Y%m%d-%H%M%S")}')
 
     @property
     def need_process(self) -> bool:
@@ -113,12 +113,19 @@ class Process:
         # move files to process_dir
         if os.path.exists(self.process_dir):
             raise UnknownError(f"Process dir '{self.process_dir}' shouldn't exist.")
+        else:
+            os.makedirs(self.process_dir)
         logger.info('Moving files to process dir.', extra={'room_id': self.live_info.room_id})
         files = [os.path.join(self.folder, origin + extension)
                  for origin in self.origins for extension in self.extensions]
-        self.processes = FileUtils.copyFiles(files, self.process_dir, output_with_folder=False)
+        # move and rename files
+        moved = FileUtils.copyFiles(files, self.process_dir)
+        news = [os.path.join(self.process_dir, TRANSFORMED_NAME + str(i) + extension)
+                for i in range(len(moved)) for extension in self.extensions]
+        FileUtils.renameFiles(list(zip(moved, news)))
+        self.processes = [TRANSFORMED_NAME + str(i) for i in range(len(self.origins))]
         # process videos
-        if not app.ctx.bot_config.multipart:
+        if not app.ctx.bot_config.multipart and len(self.processes) > 1:
             await self.merge()
         await self.make_danmaku()
         await self.combine()
@@ -129,12 +136,12 @@ class Process:
         videos = [os.path.join(self.process_dir, process + '.flv') for process in self.processes]
         danmakus = [os.path.join(self.process_dir, process + '.xml') for process in self.processes]
         # videos
-        await _merge_videos(videos, self.process_dir, MERGED_NAME + '.flv')
+        await _merge_videos(videos, self.process_dir, TRANSFORMED_NAME + '.flv')
         FileUtils.deleteFiles(videos)
         # danmakus
-        await _merge_danmaku(danmakus, self.process_dir, MERGED_NAME + '.xml')
+        await _merge_danmaku(danmakus, self.process_dir, TRANSFORMED_NAME + '.xml')
         FileUtils.deleteFiles(danmakus)
-        self.processes = [MERGED_NAME]
+        self.processes = [TRANSFORMED_NAME]
 
     async def make_danmaku(self):
         xml_files = [os.path.join(self.process_dir, process + '.xml') for process in self.processes]

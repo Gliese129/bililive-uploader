@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import subprocess
 from typing import Tuple
 
 from sanic import Sanic
@@ -28,10 +29,13 @@ async def _run_shell(command: str, execute: str) -> (str, str):
         app_path = app.config.DANMAKU_FACTORY_PATH
 
     command = command.replace('%APPLICATION', app_path)
-    proc = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
-                                                 stderr=asyncio.subprocess.PIPE)
-    stdout, stderr = await proc.communicate()
-    logger.debug(f'command:\n{command}\n------------\nstdout:\n{stdout}\n------------\nstderr:\n{stderr}')
+    logger.debug(f'Running shell command: \n{command}')
+    proc = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    stdout, stderr = proc.communicate()
+    # proc = await asyncio.create_subprocess_shell(command, stdout=asyncio.subprocess.PIPE,
+    #                                              stderr=asyncio.subprocess.PIPE)
+    # stdout, stderr = await proc.communicate()
+    logger.debug(f'stdout:\n{stdout}\n------------\nstderr:\n{stderr}')
     return stdout.decode(), stderr.decode()
 
 

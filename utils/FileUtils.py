@@ -1,6 +1,8 @@
 import json
 import os
 from shutil import copy, rmtree
+from typing import Tuple
+
 import yaml
 
 
@@ -69,3 +71,8 @@ def deleteFiles(files: list[str]):
 def renameFile(file: str, new_name: str):
     if os.path.exists(file):
         os.rename(file, new_name)
+
+
+def renameFiles(files: list[Tuple[str, str]]):
+    for file, new_name in files:
+        renameFile(file, new_name)

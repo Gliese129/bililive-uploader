@@ -1,4 +1,6 @@
+import asyncio
 import logging
+import os
 from datetime import datetime
 
 from sanic import Sanic
@@ -37,7 +39,7 @@ def file_open(room_id: int, file_path: str):
 
 
 @app.signal('session.end.<room_id:int>')
-def session_end(room_id: int, event_data: dict, room_config: RoomConfig):
+async def session_end(room_id: int, event_data: dict, room_config: RoomConfig):
     """ 录制结束
     开始处理录播
 
@@ -47,11 +49,13 @@ def session_end(room_id: int, event_data: dict, room_config: RoomConfig):
     :return:
     """
     logger.info('Recording session ended.', extra={'room_id': room_id})
-    bot_config: BotConfig = app.ctx.bot_config
     processor = Process(event_data, room_config)
     processor.live_end()
     if processor.need_process:
         logger.info('Processing...', extra={'room_id': room_id})
-
+        await processor.process()
+        for item in processor.processes:
+            path = os.path.join(processor.process_dir, item) + '.flv'
+            app.ctx.upload_queue.put(path)
     else:
         logger.info('No need to process.', extra={'room_id': room_id})

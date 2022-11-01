@@ -1,3 +1,4 @@
+import asyncio
 import getopt
 import importlib
 import logging
@@ -21,7 +22,8 @@ importlib.import_module('server.tasks')  # import it to register tasks
 def init(*_):
     cpu_count = multiprocessing.cpu_count()
     app.ctx.bot_config = bot_config
-    app.ctx.process_pool = ThreadPoolExecutor(max_workers=min(cpu_count, bot_config.workers))
+    app.ctx.process_pool = ThreadPoolExecutor(max_workers=min(cpu_count, bot_config.workers),
+                                              thread_name_prefix='process-pool')
     app.ctx.upload_queue = Queue()
     app.config.TIME_CACHE_PATH = './cache/time.json'
     app.config.VIDEO_CACHE_PATH = './cache/videos.json'
@@ -48,7 +50,9 @@ if __name__ == '__main__':
         logging.critical(e)
         sys.exit(2)
     FileUtils.deleteFolder('./cache')
-    init_logger(work_dir)
+    logger = init_logger(work_dir)
+    logger.info('Server started.')
     bot_config = BotConfig(work_dir)
+    logger.debug('Work dir: %s\nRecord dir: %s', work_dir, bot_config.rec_dir)
     app.run(host='0.0.0.0', port=bot_config.port, auto_reload=True,
             debug=False, access_log=False)

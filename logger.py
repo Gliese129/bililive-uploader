@@ -2,7 +2,6 @@ import inspect
 import logging
 import os
 import logging.handlers
-import types
 
 
 class DefaultArgsFilter(logging.Filter):
@@ -26,7 +25,7 @@ def init_logger(work_dir: str):
     # logger for console
     console_handler = logging.StreamHandler()
     console_handler.setFormatter(logging.Formatter('%(asctime)-15s | %(levelname)-8s | %(room_id)-8s %(message)s'))
-    console_handler.setLevel(logging.INFO)
+    console_handler.setLevel(logging.DEBUG)  # todo: change to INFO
     # logger for file
     file = os.path.join(work_dir, 'logs', 'bot.csv')
     csv_handler = logging.handlers.TimedRotatingFileHandler(file, when='midnight', encoding='utf-8')
