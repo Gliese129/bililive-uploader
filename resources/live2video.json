@@ -9,7 +9,7 @@
   },
   {
     "name": "生活",
-    "children": [
+    "sub": [
       {
         "name": "萌宠",
         "channel": "生活 动物圈"
@@ -18,7 +18,7 @@
   },
   {
     "name": "电台",
-    "children": [
+    "sub": [
       {
         "name": "唱见电台",
         "channel": "音乐 音乐综合"

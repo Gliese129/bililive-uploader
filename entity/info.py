@@ -4,7 +4,7 @@ from datetime import datetime
 from utils import FileUtils
 from .utils import _setChannel
 
-__all__ = ['LiveInfo', 'VideoInfo']
+__all__ = ['LiveInfo', 'UploadInfo']
 
 
 @dataclass
@@ -44,9 +44,20 @@ class LiveInfo:
         data = FileUtils.readJson(json_file)
         self.start_time = datetime.fromisoformat(data[str(room_id)])
 
+    def fill_module_string(self, module_string: str) -> str:
+        """ set template string """
+
+        return module_string \
+            .replace('${anchor}', self.anchor) \
+            .replace('${title}', self.title) \
+            .replace('${date}', self.start_time.strftime('%Y-%m-%d')) \
+            .replace('${time}', self.start_time.strftime('%H:%M:%S')) \
+            .replace('${parent_area}', self.parent_area) \
+            .replace('${child_area}', self.child_area)
+
 
 @dataclass
-class VideoInfo:
+class UploadInfo:
     """
 
     Attributes:
@@ -74,6 +85,7 @@ class VideoInfo:
         self.dynamic = room_config.dynamic
         self.title = room_config.title
 
+    @property
     def tags_str(self) -> str:
         if len(self.tags) == 0:
             return ''

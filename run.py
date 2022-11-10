@@ -54,5 +54,6 @@ if __name__ == '__main__':
     logger.info('Server started.')
     bot_config = BotConfig(work_dir)
     logger.debug('Work dir: %s\nRecord dir: %s', work_dir, bot_config.rec_dir)
+    logger.debug('Configs:\n %s', bot_config)
     app.run(host='0.0.0.0', port=bot_config.port, auto_reload=True,
             debug=False, access_log=False)

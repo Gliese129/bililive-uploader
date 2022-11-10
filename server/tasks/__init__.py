@@ -3,6 +3,8 @@ import logging
 import os
 from datetime import datetime
 
+import requests
+from bilibili_api import Credential
 from sanic import Sanic
 
 from entity import BotConfig, RoomConfig
@@ -54,8 +56,28 @@ async def session_end(room_id: int, event_data: dict, room_config: RoomConfig):
     if processor.need_process:
         logger.info('Processing...', extra={'room_id': room_id})
         await processor.process()
-        for item in processor.processes:
-            path = os.path.join(processor.process_dir, item) + '.flv'
-            app.ctx.upload_queue.put(path)
+
+        videos = [os.path.join(processor.process_dir, item) + '.flv' for item in processor.processes]
+        app.ctx.upload_queue.put({
+            'videos': videos,
+            'live_info': processor.live_info
+        })
+        logger.info('Added videos to upload queue.', extra={'room_id': room_id})
+        if app.ctx.global_config.auto_upload:
+            requests.get(f'http://localhost:{app.ctx.global_config.port}/upload')
     else:
         logger.info('No need to process.', extra={'room_id': room_id})
+
+
+@app.signal('record.upload.<room_id:int>')
+async def start_upload(room_id: int, room_config: RoomConfig, credential: Credential, info: dict):
+    """ 开始上传
+    从上传队列中取出视频并上传
+
+    :param room_id
+    :param room_config
+    :param credential
+    :param info: {videos, live_info}
+    :return:
+    """
+

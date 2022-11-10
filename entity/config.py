@@ -74,6 +74,12 @@ class BotConfig:
         if self.auto_upload:
             credential = get_value('account/credential')
             self.credential = Credential(**credential)
+        else:
+            self.credential = Credential()
+
+    def path2absolute(self, path: str) -> str:
+        """ convert relative path to absolute path """
+        return os.path.join(self.work_dir, path)
 
 
 @dataclass

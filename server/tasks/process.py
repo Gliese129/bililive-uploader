@@ -17,7 +17,7 @@ PROCESSED_PREFIX = 'result'
 
 
 class Process:
-    """ class for process
+    """ process videos
 
     Attributes:
         folder: 录播文件所属文件夹
@@ -25,8 +25,8 @@ class Process:
         process_dir: 处理后文件所在文件夹
         processes: 处理文件名（不带后缀）
         extensions: 后缀名
-        live_info:
-        room_config:
+        live_info: 直播信息
+        room_config: 房间配置
     """
     folder: str
     origins: list[str]

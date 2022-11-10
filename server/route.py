@@ -3,7 +3,7 @@ import logging
 
 from sanic import Sanic, text
 
-from entity import RoomConfig
+from entity import RoomConfig, LiveInfo
 from utils.TimeUtils import fromIso
 
 app = Sanic.get_app()
@@ -40,10 +40,23 @@ async def process(request):
 
 @app.route('/upload')
 async def upload(_):
-    res = []
+    logger.info('Starting uploading...')
+
+    upload_list = []
     while not app.ctx.upload_queue.empty():
-        res.append(app.ctx.upload_queue.get())
-    return text(str(res))
+        upload_list.append(app.ctx.upload_queue.get())
+
+    for item in upload_list:
+        live_info: LiveInfo = item['live_info']
+        asyncio.create_task(
+            _dispatch(f'record.upload.{live_info.room_id}',
+                      credential=app.ctx.global_config.credential,
+                      info=item,
+                      room_config=RoomConfig.init(app.ctx.global_config.work_dir, live_info.room_id)
+                      ))
+
+    logger.debug('Got %d videos to upload.\n Details:\n %s', len(upload_list), upload_list)
+    return text(str(upload_list))
 
 
 async def _dispatch(route: str, **kwargs):
