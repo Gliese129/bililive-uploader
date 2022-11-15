@@ -1,4 +1,3 @@
-import asyncio
 import getopt
 import importlib
 import logging
@@ -31,10 +30,12 @@ def init(*_):
     app.config.DANMAKU_FACTORY_PATH = '/DanmakuFactory/DanmakuFactory' \
                                       if bot_config.docker else 'resources\\DanmakuFactory'
 
+    FileUtils.copyFiles(['./resources/live2video.json'], bot_config.path2absolute('resources'))
+
 
 @app.on_request
 def refresh_config(*_):
-    app.ctx.global_config = BotConfig(work_dir)
+    app.ctx.bot_config = BotConfig(work_dir)
 
 
 if __name__ == '__main__':

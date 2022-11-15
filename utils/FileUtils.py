@@ -44,14 +44,17 @@ def writeDict(file: str, obj: dict):
         json.dump(obj, f)
 
 
-def copyFiles(files: list[str], target: str, output_with_folder=True) -> list[str]:
+def copyFiles(files: list[str], target: str, output_with_folder=True, ignore_when_exists=True) -> list[str]:
     if not os.path.exists(target):
         os.mkdir(target)
     new_files = []
     for file in files:
+        new_file = os.path.join(target, os.path.split(file)[1])
+        if os.path.exists(new_file) and ignore_when_exists:
+            continue
         copy(src=file, dst=target)
         if output_with_folder:
-            new_files.append(os.path.join(target, os.path.split(file)[1]))
+            new_files.append(new_file)
         else:
             new_files.append(os.path.split(file)[1])
     return new_files

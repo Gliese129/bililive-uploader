@@ -63,7 +63,7 @@ class Upload:
 
         # from live2video.json
         def find_channel() -> (str, str):
-            live2video = FileUtils.readJson(bot_config.path2absolute(LIVE2VIDEO_MAP_PATH))
+            live2video = FileUtils.readJson(bot_config.path2absolute(os.path.join('resources', LIVE2VIDEO_MAP_PATH)))
             for parent_area in live2video:
                 if parent_area.get('name') == self.live_info.parent_area:
                     if parent_area.get('channel'):

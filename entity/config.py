@@ -49,7 +49,7 @@ class BotConfig:
     config_dir = property(lambda self: os.path.join(self.work_dir, 'config'))
 
     def __init__(self, work_dir: str):
-        config = FileUtils.readYml(os.path.join(work_dir, 'config', 'global-config.yml'))
+        config = FileUtils.readYml(os.path.join(work_dir, 'config', 'bot-config.yml'))
         get_value = functools.partial(_getValue, data=config)
 
         self.docker = get_value('bot/is-docker', False)

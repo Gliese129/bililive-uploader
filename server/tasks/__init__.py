@@ -7,8 +7,11 @@ import requests
 from bilibili_api import Credential
 from sanic import Sanic
 
-from entity import BotConfig, RoomConfig
+from entity import BotConfig, RoomConfig, LiveInfo
+from exceptions import ChannelNotFoundException, UploadVideosNotFoundException
+from utils import FileUtils
 from .process import Process
+from .upload import Upload
 
 app = Sanic.get_app()
 logger = logging.getLogger('bililive-uploader')
@@ -56,15 +59,19 @@ async def session_end(room_id: int, event_data: dict, room_config: RoomConfig):
     if processor.need_process:
         logger.info('Processing...', extra={'room_id': room_id})
         await processor.process()
-
+        # webhook
+        [asyncio.create_task(send_webhook(url, event_data, processor.processes)) for url in app.ctx.bot_config.webhooks]
+        # upload
         videos = [os.path.join(processor.process_dir, item) + '.flv' for item in processor.processes]
         app.ctx.upload_queue.put({
+            'origins': processor.origins,
             'videos': videos,
-            'live_info': processor.live_info
+            'live_info': processor.live_info,
+            'folder': processor.process_dir
         })
         logger.info('Added videos to upload queue.', extra={'room_id': room_id})
-        if app.ctx.global_config.auto_upload:
-            requests.get(f'http://localhost:{app.ctx.global_config.port}/upload')
+        if app.ctx.bot_config.auto_upload:
+            requests.get(f'http://localhost:{app.ctx.bot_config.port}/upload')
     else:
         logger.info('No need to process.', extra={'room_id': room_id})
 
@@ -77,7 +84,44 @@ async def start_upload(room_id: int, room_config: RoomConfig, credential: Creden
     :param room_id
     :param room_config
     :param credential
-    :param info: {videos, live_info}
+    :param info: {videos, live_info, folder}
     :return:
     """
+    bot_config: BotConfig = app.ctx.bot_config
+    uploader = Upload(room_config=room_config, credential=credential, **info)
+    origins = info['origins']
+    folder = info['folder']
+    try:
+        await uploader.upload()
+        logger.info('Uploaded successfully.', extra={'room_id': room_id})
+        FileUtils.deleteFolder(folder)
+        if bot_config.delete:
+            files = [origin + extension for origin in origins for extension in ('.flv', '.xml')]
+            FileUtils.deleteFiles(files)
+    except (ChannelNotFoundException, UploadVideosNotFoundException) as e:
+        logger.error('Uploading failed.', extra={'room_id': room_id})
+        app.ctx.upload_queue.put(info)
 
+
+async def send_webhook(url: str, event_data: dict, videos: list[str]):
+    logger.info('Sending webhook to %s...', url)
+    bot_config: BotConfig = app.ctx.bot_config
+    body = {
+        'EventType': 'ProcessFinished',
+        'TimeStamp': datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+        'BililiveData': event_data,
+        'ProceedVideos': [video.replace(bot_config.work_dir, '') for video in videos],
+        'WorkDirectory': bot_config.work_dir
+    }
+    headers = {
+        'User-Agent': 'Bililive Uploader',
+        'content-type': 'application/json'
+    }
+    for _ in range(3):
+        with requests.post(url, json=body, headers=headers, timeout=100) as response:
+            if response.status_code == 200:
+                logger.info('Webhook sent.')
+                return
+            logger.warning('Webhook sent failed. Status code: %d', response.status_code)
+            await asyncio.sleep(1)
+    logger.error('Webhook sent failed. Status code: %d', response.status_code)

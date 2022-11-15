@@ -78,6 +78,7 @@ async def _convert_danmakus(files: list[Tuple[str, str]]):
     """
     commands = []
     for input_file, output_file in files:
+        input_file, output_file = input_file.replace('\\', '/'), output_file.replace('\\', '/')
         commands.append(f'%APPLICATION -o "{output_file}" -i "{input_file}" -d 50 -S 55 --ignore-warnings')
     command = ' & '.join(commands)
     await _run_shell(command, 'danmaku factory')
@@ -92,7 +93,8 @@ async def _combine_videos_and_danmakus(files: list[Tuple[str, str, str]]):
     commands = []
     for video, danmaku, output in files:
         if os.path.exists(danmaku):
-            commands.append(f'%APPLICATION -i "{video}" -vf "subtitles=\'{danmaku}\'" "{output}"')
+            video, danmaku, output = video.replace('\\', '/'), danmaku.replace('\\', '/'), output.replace('\\', '/')
+            commands.append(rf'%APPLICATION -i "{video}" -vf "subtitles=\'{danmaku}\'" "{output}"')
         else:
             logger.warning(f'Cannot find danmaku file: {danmaku}, skip it.')
             FileUtils.renameFile(video, output)

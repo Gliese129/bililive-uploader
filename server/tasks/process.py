@@ -121,7 +121,7 @@ class Process:
         # move and rename files
         moved = FileUtils.copyFiles(files, self.process_dir)
         news = [os.path.join(self.process_dir, TRANSFORMED_NAME + str(i) + extension)
-                for i in range(len(moved)) for extension in self.extensions]
+                for i in range(len(self.origins)) for extension in self.extensions]
         FileUtils.renameFiles(list(zip(moved, news)))
         self.processes = [TRANSFORMED_NAME + str(i) for i in range(len(self.origins))]
         # process videos

@@ -29,7 +29,7 @@ async def process(request):
     elif event_type == 'FileOpening':
         await _dispatch(f'file.open.{room_id}', file_path=event_data['RelativePath'])
     elif event_type == 'SessionEnded':
-        work_dir = app.ctx.global_config.work_dir
+        work_dir = app.ctx.bot_config.work_dir
         room_config = RoomConfig.init(work_dir, room_id, short_id)
         app.ctx.process_pool.submit(asyncio.run,
                                     _dispatch(f'session.end.{room_id}', event_data=event_data, room_config=room_config))
@@ -50,9 +50,9 @@ async def upload(_):
         live_info: LiveInfo = item['live_info']
         asyncio.create_task(
             _dispatch(f'record.upload.{live_info.room_id}',
-                      credential=app.ctx.global_config.credential,
+                      credential=app.ctx.bot_config.credential,
                       info=item,
-                      room_config=RoomConfig.init(app.ctx.global_config.work_dir, live_info.room_id)
+                      room_config=RoomConfig.init(app.ctx.bot_config.work_dir, live_info.room_id, live_info.short_id)
                       ))
 
     logger.debug('Got %d videos to upload.\n Details:\n %s', len(upload_list), upload_list)
