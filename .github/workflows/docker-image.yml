@@ -1,4 +1,4 @@
-name: bililive uploader
+name: Docker Buildup
 
 on:
   push:
