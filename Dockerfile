@@ -31,9 +31,13 @@ RUN git clone https://github.com/hihkm/DanmakuFactory.git && \
     make
 
 #
-COPY ./requirements.txt /app/requirements.txt
-COPY ./**/*.py /app/
-COPY ./resources/*.json /app/resources/
+COPY ./requirements.txt ./*.py ./*.pyw /app/
+# copy mulitple folders
+COPY ./resources /app/resources
+COPY ./entity /app/entity
+COPY ./server /app/server
+COPY ./utils /app/utils
+
 
 VOLUME /record
 VOLUME /process
@@ -43,5 +47,6 @@ WORKDIR /app
 
 RUN pip3 install --upgrade -r requirements.txt
 
+# start a forever process
 ENTRYPOINT [ "python3", "run.pyw" ]
 CMD [ "-w", "/process" ]

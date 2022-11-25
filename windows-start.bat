@@ -23,8 +23,9 @@ if %versionCompare% == -1 (
 echo Python %PYTHON_VERSION% found.
 ::active venv
 echo activating environment...
-python -m venv ./venv
-pip install -r requirements.txt
+python -m venv %~dp0venv
+python -m pip install --upgrade pip
+for /f "tokens=*" %%a in ('pip install -r %~dp0requirements.txt') do echo %%a
 :: get input
 set /p WORK_DIR=Enter the path to the directory containing the files to be processed:
 echo started
