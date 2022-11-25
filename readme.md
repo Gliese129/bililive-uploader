@@ -8,7 +8,7 @@ python run.py -w ${work dir}
 
 #### docker 启动
 ~~~ commandline
-docker run -d -p ${port-outside}:8866 -v ${work-dir}:/process -v ${bililive-recorder-path}:/record --name record-uploader gliese129/record-uploader:latest
+docker run -d -p ${port-outside}:8866 -v ${work-dir}:/process -v ${bililive-recorder-path}:/record --name record-uploader gliese129/bililive-uploader:latest
 ~~~
 
 ~~~ yaml

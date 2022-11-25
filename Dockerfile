@@ -47,6 +47,5 @@ WORKDIR /app
 
 RUN pip3 install --upgrade -r requirements.txt
 
-# start a forever process
 ENTRYPOINT [ "python3", "run.pyw" ]
 CMD [ "-w", "/process" ]
