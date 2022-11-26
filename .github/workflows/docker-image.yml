@@ -2,14 +2,44 @@ name: Docker Buildup
 
 on:
   push:
-    branches: [ "master" ]
+    branches: ["master"]
   pull_request:
-    branches: [ "master" ]
+    branches: ["master"]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
     steps:
-    - name: Build the Docker image
-      run: docker build --file Dockerfile --tag gliese129/bililive-recorder:latest .
+      - uses: actions/checkout@v2
+
+      - name: Build the Docker image
+        run: docker build -f Dockerfile -t gliese129/bililive-uploader:latest .
+
+      - name: Save artifact
+        run: mkdir -p /build
+          docker save -o /build/images.tar gliese129/bililive-uploader:latest
+
+      - uses: actions/upload-artifact@v3
+        with: docker-images
+        path: /build/images.tar
+
+  upload:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/download=artifact@v3
+        with:
+          name: docker-images
+
+      - name: Load docker images
+        run: docker load -i images.tar
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2.1.0
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_PWD }}
+
+      - name: Push to docker hub
+        run: docker push gliese129/bililive-uploader:latest
