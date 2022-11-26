@@ -16,13 +16,13 @@ jobs:
         run: docker build -f Dockerfile -t gliese129/bililive-uploader:latest .
 
       - name: Save artifact
-        run: mkdir -p /build &&
-          docker save -o /build/images.tar gliese129/bililive-uploader:latest
+        run: mkdir -p build &&
+          docker save -o build/images.tar gliese129/bililive-uploader:latest
 
       - uses: actions/upload-artifact@v3
         with:
           name: docker-images
-          path: /build/images.tar
+          path: build/images.tar
 
   upload:
     runs-on: ubuntu-latest
