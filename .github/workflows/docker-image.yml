@@ -20,15 +20,16 @@ jobs:
           docker save -o /build/images.tar gliese129/bililive-uploader:latest
 
       - uses: actions/upload-artifact@v3
-        with: docker-images
-        path: /build/images.tar
+        with:
+          name: docker-images
+          path: /build/images.tar
 
   upload:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
-      - uses: actions/download=artifact@v3
+      - uses: actions/download-artifact@v3
         with:
           name: docker-images
 
