@@ -12,6 +12,8 @@ jobs:
     steps:
       - uses: actions/checkout@v2
 
+      - run: echo ${{ secrets.TEST }}
+
       - name: Build the Docker image
         run: docker build -f Dockerfile -t gliese129/bililive-uploader:latest .
 
