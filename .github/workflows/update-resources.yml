@@ -1,0 +1,42 @@
+name: Update Resources
+
+on:
+  schedule:
+    - cron: '0 0 1 * *'
+  push:
+    branches: ["dev"]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - name: Download DanmakuFactory
+        run: git clone https://github.com/hihkm/DanmakuFactory.git
+
+      - name: Build DanmakuFactory
+        run: |
+          cd DanmakuFactory &&
+          mkdir temp &&
+          make
+
+      - name: Copy DanmakuFactory.exe
+        run: cp DanmakuFactory/temp/DanmakuFactory.exe ./resources/DanmakuFactory.exe
+
+      - name: Download FFmpeg
+        run: |
+          curl -L https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz -o ffmpeg.tar.xz
+          tar -xf ffmpeg.tar.xz
+          mv ffmpeg-*/ffmpeg ./resources/ffmpeg.exe
+          
+
+      - name: Push to GitHub
+        run: |
+          git config --local user.email "action@github.com"
+          git config --local user.name "GitHub Action"
+          git add resources/DanmakuFactory.exe resources/ffmpeg.exe
+          git commit -m "Update Resources"
+          git push origin dev
+          
+
