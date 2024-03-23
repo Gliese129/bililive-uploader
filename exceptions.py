@@ -14,7 +14,7 @@ class ConfigNotCompletedException(Exception):
         sys.exit(1)
 
     def __str__(self):
-        return f'{self.__class__.__name__}: {self.path} not found in config, please check if it\'s set.'
+        return f"{self.__class__.__name__}: {self.path} not found in config, please check if it's set."
 
 
 class ChannelNotFoundException(Exception):

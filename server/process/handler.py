@@ -1,13 +1,13 @@
 import logging
 import os
-from datetime import datetime
 
 from sanic import Sanic
 
 from entity import LiveInfo, RoomConfig
 from exceptions import UnknownError
 from utils import FileUtils, VideoUtils
-from .utils import *
+
+from .utils import merge_videos, merge_danmaku, convert_danmakus, combine_videos_and_danmakus
 
 app = Sanic.get_app()
 logger = logging.getLogger('bililive-uploader')
@@ -17,7 +17,11 @@ PROCESSED_PREFIX = 'result'
 
 
 class Process:
-    """ process videos
+    """ This class is responsible for processing videos.
+
+    It takes event data and room configuration as input,
+    and provides methods for merging, making danmaku, and combining videos.
+
 
     Attributes:
         folder: 录播文件所属文件夹
@@ -41,32 +45,6 @@ class Process:
         self.origins, self.processes = [], []
         self.room_config = room_config
         self.live_info.read_start_time(app.config.TIME_CACHE_PATH, self.live_info.room_id)
-
-    @staticmethod
-    def session_start(room_id: int, start_time: datetime):
-        rooms = FileUtils.readJson(app.config.TIME_CACHE_PATH)
-        rooms[str(room_id)] = start_time.isoformat()
-        FileUtils.writeDict(app.config.TIME_CACHE_PATH, rooms)
-
-    @staticmethod
-    def file_open(room_id: int, path: str):
-        relative_folder, name = os.path.split(path)
-        folder = os.path.join(app.ctx.bot_config.rec_dir, relative_folder)  # relative -> absolute
-        name = os.path.splitext(name)[0]
-        extensions = ['.flv', '.xml'] if app.ctx.bot_config.danmaku else ['.flv']
-        for extension in extensions:  # check if file exists
-            if not os.path.exists(os.path.join(folder, name + extension)):
-                logger.warning(f'File "{name + extension}" should exist in folder "{folder}", but not found')
-
-        rooms = FileUtils.readJson(app.config.VIDEO_CACHE_PATH)
-        if str(room_id) not in rooms:
-            rooms[str(room_id)] = {
-                'folder': folder,
-                'filenames': [],
-                'extensions': extensions
-            }
-        rooms[str(room_id)]['filenames'].append(name)
-        FileUtils.writeDict(app.config.VIDEO_CACHE_PATH, rooms)
 
     def live_end(self):
         rooms = FileUtils.readJson(app.config.VIDEO_CACHE_PATH)
@@ -111,10 +89,8 @@ class Process:
 
     async def process(self):
         # move files to process_dir
-        if os.path.exists(self.process_dir):
-            raise UnknownError(f"Process dir '{self.process_dir}' shouldn't exist.")
-        else:
-            os.makedirs(self.process_dir)
+        assert not os.path.exists(self.process_dir), UnknownError(f"Process dir '{self.process_dir}' shouldn't exist.")
+        os.makedirs(self.process_dir)
         logger.info('Moving files to process dir.', extra={'room_id': self.live_info.room_id})
         files = [os.path.join(self.folder, origin + extension)
                  for origin in self.origins for extension in self.extensions]
@@ -136,10 +112,10 @@ class Process:
         videos = [os.path.join(self.process_dir, process + '.flv') for process in self.processes]
         danmakus = [os.path.join(self.process_dir, process + '.xml') for process in self.processes]
         # videos
-        await _merge_videos(videos, self.process_dir, TRANSFORMED_NAME + '.flv')
+        await merge_videos(videos, self.process_dir, TRANSFORMED_NAME + '.flv')
         FileUtils.deleteFiles(videos)
         # danmakus
-        await _merge_danmaku(danmakus, self.process_dir, TRANSFORMED_NAME + '.xml')
+        await merge_danmaku(danmakus, self.process_dir, TRANSFORMED_NAME + '.xml')
         FileUtils.deleteFiles(danmakus)
         self.processes = [TRANSFORMED_NAME]
 
@@ -148,7 +124,7 @@ class Process:
         ass_files = [os.path.join(self.process_dir, process + '.ass') for process in self.processes]
         logger.debug('Transforming damaku files:\ninputs: %s\noutputs: %s',
                      xml_files, ass_files, extra={'room_id': self.live_info.room_id})
-        await _convert_danmakus(list(zip(xml_files, ass_files)))
+        await convert_danmakus(list(zip(xml_files, ass_files)))
 
     async def combine(self):
         logger.info('Combining record videos and danmaku...', extra={'room_id': self.live_info.room_id})
@@ -157,7 +133,7 @@ class Process:
         outputs = [os.path.join(self.process_dir, f'{PROCESSED_PREFIX}{i}.flv') for i in range(len(self.processes))]
         logger.debug('Combining videos:\ninput videos: %s\ninput danmakus: %s\noutput: %s',
                      videos, danmakus, outputs, extra={'room_id': self.live_info.room_id})
-        await _combine_videos_and_danmakus(list(zip(videos, danmakus, outputs)))
-        self.processes = [f'{PROCESSED_PREFIX}{i}' for i in range(len(self.processes))]
+        await combine_videos_and_danmakus(list(zip(videos, danmakus, outputs)))
+        self.processes = [PROCESSED_PREFIX + str(i) for i in range(len(self.processes))]
         FileUtils.deleteFiles(videos)
         FileUtils.deleteFiles(danmakus)

@@ -30,7 +30,8 @@ class Upload:
     upload_info: UploadInfo
     room_config: RoomConfig
 
-    def __init__(self, credential: Credential, room_config: RoomConfig, live_info: LiveInfo, videos: list[str], **_):
+    def __init__(self, credential: Credential, room_config: RoomConfig,
+                 live_info: LiveInfo, videos: list[str], **_):
         self.credential = credential
         self.live_info = live_info
         self.upload_info = UploadInfo(room_config, videos)
@@ -72,6 +73,7 @@ class Upload:
                         for child_area in parent_area['sub']:
                             if child_area.get('name') == self.live_info.child_area:
                                 return child_area['channel']
+            return None
 
         result = find_channel()
         if result:
@@ -88,7 +90,7 @@ class Upload:
         if not self.upload_info.channel:
             raise ChannelNotFoundException('Cannot find channel in live2video.json.',
                                            self.live_info.parent_area, self.live_info.child_area)
-        logger.debug(f'live channel: %s-%s  -->  video channel: %s-%s',
+        logger.debug('live channel: %s-%s  -->  video channel: %s-%s',
                      self.live_info.parent_area, self.live_info.child_area,
                      self.upload_info.channel[0], self.upload_info.channel[1],
                      extra={'room_id': self.live_info.room_id})
@@ -140,7 +142,7 @@ class Upload:
             'up_close_reply': False,
             'up_selection_reply': False
         }
-        logger.debug(f'upload info: \n%s', meta, extra={'room_id': self.live_info.room_id})
+        logger.debug('upload info: \n%s', meta, extra={'room_id': self.live_info.room_id})
         pages = self.set_pages(self.upload_info.videos)
         if len(pages) == 0:
             raise UploadVideosNotFoundException('Cannot find videos to upload.')

@@ -3,6 +3,7 @@ import functools
 import re
 from dataclasses import dataclass
 from typing import Optional
+import logging
 
 from exceptions import *
 from bilibili_api import Credential
@@ -156,6 +157,7 @@ class RoomConfig:
             if int(room['id']) in (room_id, short_id):
                 return cls(room)
         logger.warning('Unknown room: [id: %d] [short id: %d]', room_id, short_id)
+        return None
 
     def list_conditions(self, live_info: LiveInfo) -> list[Condition]:
         """ list proper conditions
